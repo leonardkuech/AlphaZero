@@ -23,8 +23,9 @@ def main():
     agent2 = RandomPositiveAgent("RandomAgent")
     # agent2 = PrunedMinMaxAgent(8,1,"MinMaxAgent")
     agent1 = MCTSAgent("MCTSAgent", 0)
-    # agent = HeuristicMCTSAgent("MCTSAgent", 1)
-    game = Game.create_game_with_agent(agent1, agent2)
+    # agent1 = HeuristicMCTSAgent("MCTSAgent", 1)
+    # game = Game.create_game_with_agent(agent=agent2)
+    game = Game.create_agent_game(agent1, agent2)
 
     # Initialize the UI in the main thread
     root = tkinter.Tk()

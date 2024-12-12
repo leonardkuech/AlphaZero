@@ -30,7 +30,7 @@ class Game:
         return Game(game_state)
 
     @staticmethod
-    def create_game_with_agent(agent1: Agent, agent2: Agent):
+    def create_agent_game(agent1: Agent, agent2: Agent):
         board = Board.create_new_board()
         player1 = Player(1, agent=agent1)
         player2 = Player(2, agent=agent2)

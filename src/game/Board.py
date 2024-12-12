@@ -35,7 +35,7 @@ class Board:
     @staticmethod
     def _create_values():
         values = [i for i in range(1, 6) for _ in range(12)]
-        random.seed(42)
+        # random.seed(42)
         random.shuffle(values)
         return values
 
@@ -71,6 +71,14 @@ class Board:
         if x is not None and y is not None:
             return self.game_board.get(calc_cantor(x, y))
         return None
+
+    def get_remaining_tiles_value(self) -> int:
+        sum = 0
+
+        for tile in self.get_all_tiles():
+            sum += tile.value
+
+        return sum
 
     def clone(self):
         cloned_board = Board()

@@ -60,7 +60,10 @@ class GameState:
         self.game_started = is_started
 
     def check_game_over(self) -> bool:
-        return self.not_moved_count >= 2
+        return self.not_moved_count >= 2 or self.not_winnable()
+
+    def not_winnable(self):
+        return abs(self.players[0].get_bank() - self.players[1].get_bank()) > self.game_board.get_remaining_tiles_value()
 
     def check_bank(self) -> List[int]:
         return [player.get_bank() for player in self.players]
@@ -257,8 +260,7 @@ class GameState:
         cloned_state.set_game_started(self.game_started)
         return cloned_state
 
-    def encode(self):
-        print('Hello')
+    def encode(self) -> (torch.Tensor, torch.Tensor, torch.Tensor):
         grid_size = 9  # 5-hex radius translates to a 11x11 grid
         num_value_channels = 6  # Possible tile values: 0-5
         num_player_channels = 2  # Two players
@@ -266,6 +268,8 @@ class GameState:
 
         # Initialize a tensor with zeros
         board_tensor = torch.zeros((num_channels, grid_size, grid_size), dtype=torch.float32)
+        player1_points_tensor = torch.zeros(5, dtype=torch.float32)
+        player2_points_tensor = torch.zeros(5, dtype=torch.float32)
 
         for tile in self.game_board.get_all_tiles():
             x, y = tile.x, tile.y
@@ -273,6 +277,14 @@ class GameState:
 
             if tile.is_occupied:
                 board_tensor[num_value_channels + self.get_player_on_hex(x,y), x + 4, y + 4] = 1.0
+
+        reserve1 = self.players[0].get_reserve()
+        for i in range(len(reserve1)):
+            player1_points_tensor[i] = reserve1[i]
+
+        reserve2 = self.players[1].get_reserve()
+        for i in range(len(reserve2)):
+            player1_points_tensor[i] = reserve2[i]
 
 #        for i in range(board_tensor.shape[0]):
 #            plt.imshow(board_tensor[i].numpy(), cmap='gray')

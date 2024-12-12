@@ -43,7 +43,6 @@ class MinMaxAgent(Agent):
         for move in game_state.get_moves():
             simulated_game_state = game_state.clone()
             simulated_game_state.apply_move(move)
-            simulated_game_state.next_player_to_move()
 
             move_value = self._min_max(simulated_game_state, depth - 1)
             best_eval = max(best_eval, move_value)
@@ -60,7 +59,6 @@ class MinMaxAgent(Agent):
         for move in game_state.get_moves():
             simulated_game_state = game_state.clone()
             simulated_game_state.apply_move(move)
-            simulated_game_state.next_player_to_move()
 
             move_value = self._min_max(simulated_game_state, self.max_depth - 1)
 

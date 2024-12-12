@@ -88,6 +88,7 @@ class GameState:
         if self.game_started:
             if move == float('-inf'):
                 self.increment_not_moved_count()
+                self.next_player_to_move()
                 return True
             elif self.check_move_valid(move):
                 self.set_not_moved_count(0)
@@ -109,6 +110,7 @@ class GameState:
                 stop.set_occupied(True)
                 start.set_occupied(False)
                 current_player.set_pos(stop.get_x(), stop.get_y())
+                self.next_player_to_move()
                 return True
             return False
         else:
@@ -121,6 +123,7 @@ class GameState:
             self.placed += 1
             if self.placed >= 2:
                 self.game_started = True
+            self.next_player_to_move()
             return True
 
     def check_move_valid(self, move: int) -> bool:

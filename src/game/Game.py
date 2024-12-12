@@ -32,8 +32,8 @@ class Game:
     @staticmethod
     def create_agent_game(agent1: Agent, agent2: Agent):
         board = Board.create_new_board()
-        player1 = Player(1, agent=agent1)
-        player2 = Player(2, agent=agent2)
+        player1 = Player(0, agent=agent1)
+        player2 = Player(1, agent=agent2)
 
         game_state = GameState(board, [player1, player2], 0)
         return Game(game_state)
@@ -52,7 +52,7 @@ class Game:
                     selected = player.choose_move(self.game_state)
                     if selected != -1 and self.make_move(selected):
                         break
-                    time.sleep(0.2)
+                    time.sleep(2)
             else:
                 while True:
                     selected = self.ui.get_selected_hex()
@@ -60,7 +60,6 @@ class Game:
                         break
                     time.sleep(0.2)
 
-            self.game_state.next_player_to_move()
             if self.has_ui:
                 self.ui.update_board()
 
@@ -79,22 +78,19 @@ class Game:
                 while True:
                     selected = player.choose_move(self.game_state)
                     if self.make_move(selected):
-                        self.game_state.next_player_to_move()
                         if self.has_ui:
                             self.ui.update_board()
                         break
-                    time.sleep(0.2)
+                    time.sleep(2)
             else:
                 while True:
                     if self.ui and self.ui.get_pass_turn() and self.make_move(float('-inf')):
-                        self.game_state.next_player_to_move()
                         if self.has_ui:
                             self.ui.update_board()
                         break
 
                     selected = self.ui.get_selected_hex()
                     if selected >= 0 and self.make_move(selected):
-                        self.game_state.next_player_to_move()
                         if self.has_ui:
                             self.ui.update_board()
                         time.sleep(0.2)
@@ -110,7 +106,7 @@ class Game:
         if winner < 0:
             print(f"It is a draw with both players reaching {self.game_state.check_bank()[0]} points")
         else:
-            print(f"Winner is player {winner} with a total of {self.game_state.check_bank()[winner]} points!")
+            print(f"Winner is player {winner + 1} with a total of {self.game_state.check_bank()[winner]} points!")
         self.game_state.set_game_started(False)
 
     def get_ui(self):

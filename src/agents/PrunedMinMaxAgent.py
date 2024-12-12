@@ -32,7 +32,6 @@ class PrunedMinMaxAgent(Agent):
             for move in game_state.get_moves():
                 simulated_game_state = game_state.clone()
                 simulated_game_state.apply_move(move)
-                simulated_game_state.next_player_to_move()
 
                 evaluation = self._alpha_beta(simulated_game_state, depth - 1, alpha, beta, False)
                 max_eval = max(max_eval, evaluation)
@@ -45,7 +44,6 @@ class PrunedMinMaxAgent(Agent):
             for move in game_state.get_moves():
                 simulated_game_state = game_state.clone()
                 simulated_game_state.apply_move(move)
-                simulated_game_state.next_player_to_move()
 
                 evaluation = self._alpha_beta(simulated_game_state, depth - 1, alpha, beta, True)
                 min_eval = min(min_eval, evaluation)
@@ -64,7 +62,6 @@ class PrunedMinMaxAgent(Agent):
         for move in game_state.get_moves():
             simulated_game_state = game_state.clone()
             simulated_game_state.apply_move(move)
-            simulated_game_state.next_player_to_move()
 
             move_value = self._alpha_beta(
                 simulated_game_state,

@@ -9,8 +9,10 @@ class HexGridUI(tk.Canvas):
     HEX_RADIUS = 30
     OFFSET = 400
 
-    def __init__(self, master, game, **kwargs):
+    def __init__(self, master, game, show_indexes=False, **kwargs):
         super().__init__(master, width=800, height=800, bg="white", **kwargs)
+
+        self.show_indexes = show_indexes
         self.hexagons = []  # Persistent list of hexagons
         self.hovered_hex = None
         self.clicked_hex = None
@@ -75,20 +77,24 @@ class HexGridUI(tk.Canvas):
         header.grid(row=0, column=0, columnspan=3, pady=5)
 
         # Add grid layout for better alignment
-        tk.Label(player_info, text=labels, font=("Arial", 14), bg="lightgray").grid(row=1, column=1, sticky="w", padx=10)
+        tk.Label(player_info, text=labels, font=("Arial", 14), bg="lightgray").grid(row=1, column=1, sticky="w",
+                                                                                    padx=10)
 
         # Player one info
-        tk.Label(player_info, text="Player 1 :", font=("Arial", 14, "bold"), bg="lightgray").grid(row=2, column=0, sticky="e", padx=10)
+        tk.Label(player_info, text="Player 1 :", font=("Arial", 14, "bold"), bg="lightgray").grid(row=2, column=0,
+                                                                                                  sticky="e", padx=10)
         player_one_label = f"   {player_one_reserve[0]} | {player_one_reserve[1]} | {player_one_reserve[2]} | " \
                            f"{player_one_reserve[3]} | {player_one_reserve[4]} | {player_one_reserve_sum}"
-        tk.Label(player_info, text=player_one_label, font=("Arial", 14), bg="lightgray").grid(row=2, column=1, sticky="w")
+        tk.Label(player_info, text=player_one_label, font=("Arial", 14), bg="lightgray").grid(row=2, column=1,
+                                                                                              sticky="w")
 
         # Player two info
-        tk.Label(player_info, text="Player 2 :", font=("Arial", 14, "bold"), bg="lightgray").grid(row=3, column=0, sticky="e", padx=10)
+        tk.Label(player_info, text="Player 2 :", font=("Arial", 14, "bold"), bg="lightgray").grid(row=3, column=0,
+                                                                                                  sticky="e", padx=10)
         player_two_label = f"   {player_two_reserve[0]} | {player_two_reserve[1]} | {player_two_reserve[2]} | " \
                            f"{player_two_reserve[3]} | {player_two_reserve[4]} | {player_two_reserve_sum}"
-        tk.Label(player_info, text=player_two_label, font=("Arial", 14), bg="lightgray").grid(row=3, column=1, sticky="w")
-
+        tk.Label(player_info, text=player_two_label, font=("Arial", 14), bg="lightgray").grid(row=3, column=1,
+                                                                                              sticky="w")
 
     def draw_hexagon(self, hexagon):
         points = self.get_hexagon_shape(hexagon.x, hexagon.y)
@@ -98,6 +104,11 @@ class HexGridUI(tk.Canvas):
         if hexagon.hex_tile.value > 0:
             self.create_text(hexagon.x, hexagon.y, text=str(hexagon.value), font=("Arial", 12, "bold"))
 
+        if self.show_indexes:
+            self.create_text(hexagon.x, hexagon.y + 10,
+                             text=(f'{hexagon.hex_tile.get_x() }|{hexagon.hex_tile.get_y()}'),
+                             font=("Arial", 10))
+
         if hexagon.hex_tile.is_occupied:
             self.draw_glider(hexagon)
 
@@ -105,7 +116,7 @@ class HexGridUI(tk.Canvas):
         player = self.game.get_game_state().get_player_on_hex(hexagon.hex_tile.get_x(), hexagon.hex_tile.get_y())
         color = "black" if player == 1 else "white" if player == 0 else "red"
         self.create_oval(
-            hexagon.x + 7 , hexagon.y - 7, hexagon.x + 21, hexagon.y + 7, fill=color, outline=color
+            hexagon.x + 7, hexagon.y - 7, hexagon.x + 21, hexagon.y + 7, fill=color, outline=color
         )
 
     def get_hexagon_shape(self, x, y):
@@ -132,7 +143,7 @@ class HexGridUI(tk.Canvas):
         self.pass_next_turn = True
 
     def get_pass_turn(self):
-        passing =  self.pass_next_turn
+        passing = self.pass_next_turn
         self.pass_next_turn = False
         return passing
 

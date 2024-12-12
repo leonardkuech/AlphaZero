@@ -3,7 +3,7 @@ import random
 from Agent import Agent
 
 class MCTSAgent(Agent):
-    SIMULATION_LIMIT = 4000  # Number of simulations per move
+    SIMULATION_LIMIT = 5000  # Number of simulations per move
     EXPLORATION_CONSTANT = math.sqrt(2)  # UCT exploration constant
 
     def __init__(self, name: str, player_id: int):
@@ -117,5 +117,5 @@ class Node:
         )
 
     def get_best_move(self):
-        best_child = max(self.children, key=lambda child: child.score)
+        best_child = max(self.children, key=lambda child: child.visit_count)
         return best_child.move

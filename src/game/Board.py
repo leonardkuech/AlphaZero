@@ -1,5 +1,5 @@
 import random
-from typing import Any
+from typing import Any, List
 
 from Hextile import HexTile
 from Cantor import calc_cantor
@@ -56,7 +56,7 @@ class Board:
     def get_tile_count(self):
         return len(self.game_board)
 
-    def get_all_tiles(self):
+    def get_all_tiles(self) -> List[HexTile]:
         return list(self.game_board.values())
 
     def get_placement_tiles(self):

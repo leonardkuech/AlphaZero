@@ -1,5 +1,8 @@
 from typing import List
 
+import torch
+import matplotlib.pyplot as plt
+
 from Cantor import calc_cantor
 from Hextile import HexTile
 
@@ -91,7 +94,10 @@ class GameState:
 
                 if start.get_value() > 0:
                     current_player.add_to_reserve(start.get_value())
-                    start.set_value(-1)
+                    start.set_value(0)
+                elif start.get_x() == 0 and start.get_y() == 0 and start.get_z() == 0:
+                    if not current_player.subtract_lowest_from_reserve():
+                        return False
                 else:
                     distance = HexTile.get_distance(start, stop)
                     if not current_player.subtract_from_reserve(distance):
@@ -250,3 +256,26 @@ class GameState:
         cloned_state.set_not_moved_count(self.not_moved_count)
         cloned_state.set_game_started(self.game_started)
         return cloned_state
+
+    def encode(self):
+        print('Hello')
+        grid_size = 9  # 5-hex radius translates to a 11x11 grid
+        num_value_channels = 6  # Possible tile values: 0-5
+        num_player_channels = 2  # Two players
+        num_channels = num_value_channels + num_player_channels
+
+        # Initialize a tensor with zeros
+        board_tensor = torch.zeros((num_channels, grid_size, grid_size), dtype=torch.float32)
+
+        for tile in self.game_board.get_all_tiles():
+            x, y = tile.x, tile.y
+            board_tensor[tile.get_value(), x + 4 , y + 4] = 1.0
+
+            if tile.is_occupied:
+                board_tensor[num_value_channels + self.get_player_on_hex(x,y), x + 4, y + 4] = 1.0
+
+#        for i in range(board_tensor.shape[0]):
+#            plt.imshow(board_tensor[i].numpy(), cmap='gray')
+#            plt.title(f"Channel {i}")
+#            plt.colorbar()
+#            plt.show()

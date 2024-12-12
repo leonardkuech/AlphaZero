@@ -2,7 +2,7 @@ from Cantor import calc_cantor
 
 
 class HexTile:
-    def __init__(self, x, y, z, value=-1):
+    def __init__(self, x, y, z, value=0):
         self.x = x
         self.y = y
         self.z = z

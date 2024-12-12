@@ -63,16 +63,10 @@ class MinMaxAgent(Agent):
             simulated_game_state.next_player_to_move()
 
             move_value = self._min_max(simulated_game_state, self.max_depth - 1)
-            if move != float('-inf'):
-                print("_________________")
-                print(
-                    f"Move {game_state.get_game_board().get_tile(c=move).get_value()} | Move value: {move_value}"
-                )
 
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
 
-        print("Made move")
         return best_move
 

@@ -1,0 +1,120 @@
+import math
+import random
+from Agent import Agent
+
+"""
+       Rates the position according to a simple heuristic rather then completing a random playout.
+"""
+class HeuristicMCTSAgent(Agent):
+    SIMULATION_LIMIT = 10000  # Number of simulations per move
+    EXPLORATION_CONSTANT = math.sqrt(2)  # UCT exploration constant
+
+    def __init__(self, name: str, player_id: int):
+        super().__init__(name)
+        self.player_id = player_id
+
+    def choose_move(self, game_state):
+        """
+        Uses MCTS to choose the best move for the current game state.
+        """
+        root = Node(game_state)
+
+        for _ in range(self.SIMULATION_LIMIT):
+            promising_node = self._select_promising_node(root)
+            if not promising_node.game_state.check_game_over():
+                self._expand_node(promising_node)
+            node_to_simulate = promising_node
+            if promising_node.children:
+                node_to_simulate = promising_node.get_random_child_node()
+            result = self._simulate_game(node_to_simulate)
+            self._backpropagate(node_to_simulate, result)
+
+        return root.get_best_move()
+
+    def _select_promising_node(self, root_node):
+        """
+        Traverses the tree to find the most promising node based on UCT.
+        """
+        node = root_node
+        while node.children:
+            node = node.get_child_with_highest_uct()
+        return node
+
+    def _expand_node(self, node):
+        """
+        Expands the given node by adding all possible child nodes.
+        """
+        legal_moves = node.game_state.get_moves()
+        for move in legal_moves:
+            new_state = node.game_state.clone()
+            new_state.apply_move(move)
+            child_node = Node(new_state, move, node)
+            node.add_child(child_node)
+
+    def _simulate_game(self, node):
+        """
+        Simulates a game from the given node until it ends, returning the result.
+        """
+        temp_state = node.game_state.clone()
+        return self._evaluate(temp_state)
+
+    def _backpropagate(self, node, result):
+        """
+        Backpropagates the simulation result up the tree.
+        """
+        temp_node = node
+        while temp_node is not None:
+            temp_node.increment_visit_count()
+            temp_node.add_score(result)
+            temp_node = temp_node.parent
+
+    def _evaluate(self, game_state):
+        """
+        Evaluates the final game state and returns a score for the current player.
+        """
+        winner = game_state.get_leader()
+        if winner < 0:
+            return 0.5  # Tie
+        return 1.0 if winner == self.player_id else 0.0
+
+
+class Node:
+    def __init__(self, game_state, move=None, parent=None):
+        self.game_state = game_state
+        self.move = move
+        self.parent = parent
+        self.children = []
+        self.visit_count = 0
+        self.score = 0.0
+
+    def add_child(self, child):
+        self.children.append(child)
+
+    def increment_visit_count(self):
+        self.visit_count += 1
+
+    def add_score(self, score):
+        self.score += score
+
+    def get_random_child_node(self):
+        return random.choice(self.children)
+
+    def get_child_with_highest_uct(self):
+        return max(
+            self.children,
+            key=lambda child: self._calculate_uct(child),
+        )
+
+    def _calculate_uct(self, child):
+        if child.visit_count == 0:
+            return float('inf')
+        return (
+            child.score / child.visit_count
+            + HeuristicMCTSAgent.EXPLORATION_CONSTANT * math.sqrt(
+                math.log(self.visit_count) / child.visit_count
+            )
+        )
+
+    def get_best_move(self):
+        best_child = max(self.children, key=lambda child: child.score)
+        return best_child.move

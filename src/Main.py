@@ -4,6 +4,7 @@ import tkinter
 from Game import Game
 from HexGridUI import HexGridUI
 from MCTSAgent import MCTSAgent
+from HeuristikMCTSAgent import HeuristicMCTSAgent
 from MinMaxAgent import MinMaxAgent
 from PrunedMinMaxAgent import PrunedMinMaxAgent
 from RandomAgent import RandomAgent
@@ -19,15 +20,16 @@ def start_game_logic(game, finished_event):
 
 def main():
     # Create a new Game
-    # agent = RandomPositiveAgent("RandomAgent")
-    # agent = PrunedMinMaxAgent(8,1,"MinMaxAgent")
-    agent = MCTSAgent("MCTSAgent", 1)
-    game = Game.create_game_with_agent(agent)
+    agent2 = RandomPositiveAgent("RandomAgent")
+    # agent2 = PrunedMinMaxAgent(8,1,"MinMaxAgent")
+    agent1 = MCTSAgent("MCTSAgent", 0)
+    # agent = HeuristicMCTSAgent("MCTSAgent", 1)
+    game = Game.create_game_with_agent(agent1, agent2)
 
     # Initialize the UI in the main thread
     root = tkinter.Tk()
     root.resizable(False, False)
-    ui = HexGridUI(root, game)
+    ui = HexGridUI(root, game, show_indexes=True)
     game.set_ui(ui)
 
     # Create an event to signal when the game thread is finished
@@ -40,7 +42,8 @@ def main():
     # Periodically check if the game thread has finished
     def check_game_thread():
         if finished_event.is_set():
-            root.destroy()  # Close the UI
+            print("Game finished")
+            # root.destroy()  # Close the UI
         else:
             root.after(100, check_game_thread)
 

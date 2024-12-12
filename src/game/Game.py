@@ -29,6 +29,15 @@ class Game:
         game_state = GameState(board, [player1, player2], 0)
         return Game(game_state)
 
+    @staticmethod
+    def create_game_with_agent(agent1: Agent, agent2: Agent):
+        board = Board.create_new_board()
+        player1 = Player(1, agent=agent1)
+        player2 = Player(2, agent=agent2)
+
+        game_state = GameState(board, [player1, player2], 0)
+        return Game(game_state)
+
     def get_game_state(self):
         return self.game_state
 
@@ -70,15 +79,14 @@ class Game:
                 while True:
                     selected = player.choose_move(self.game_state)
                     if self.make_move(selected):
+                        self.game_state.next_player_to_move()
                         if self.has_ui:
-                            self.game_state.next_player_to_move()
                             self.ui.update_board()
                         break
                     time.sleep(0.2)
             else:
                 while True:
                     if self.ui and self.ui.get_pass_turn() and self.make_move(float('-inf')):
-                        print("Passing")
                         self.game_state.next_player_to_move()
                         if self.has_ui:
                             self.ui.update_board()
@@ -92,7 +100,7 @@ class Game:
                         time.sleep(0.2)
                         break
                     time.sleep(0.2)
-
+            # self.game_state.encode()
             if self.game_state.check_game_over():
                 self.game_over()
 

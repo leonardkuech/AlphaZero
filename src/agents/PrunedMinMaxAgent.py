@@ -11,7 +11,8 @@ class PrunedMinMaxAgent(Agent):
         """
         Finds the best move for the current game state using the Alpha-Beta Pruned MinMax algorithm.
         """
-        return self._find_best_move(game_state)
+        move = self._find_best_move(game_state)
+        return move
 
     def _alpha_beta(self, game_state, depth: int, alpha: float, beta: float, maximizing_player: bool):
         """
@@ -72,15 +73,11 @@ class PrunedMinMaxAgent(Agent):
                 float('inf'),
                 False,
             )
-            if move != float('-inf'):
-                print("_________________")
-                print(f"Move: {game_state.get_game_board().get_tile(c = move).get_value()} | Move value: {move_value}")
 
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
 
-        print("Made move")
         return best_move
 
     def _evaluate_game_state(self, game_state) -> int:

@@ -2,10 +2,32 @@ from typing import List
 
 import torch
 import matplotlib.pyplot as plt
+from sympy.physics.units import current
 
 from Cantor import calc_cantor
 from Hextile import HexTile
 
+
+def map():
+    map = {}
+    count = 0
+
+    n = 4
+
+    for i in range(-n, n + 1):
+        r1 = max(-n, -i - n)
+        r2 = min(n, -i + n)
+        for j in range(r1, r2 + 1):
+            if i + j + (- i - j) == 0:
+                map[calc_cantor(i, j)] = count
+                count += 1
+
+    map[float('-inf')] = count
+
+    return map
+
+MOVE_TO_INDEX = map()
+INDEX_TO_MOVE = {v: k for k, v in MOVE_TO_INDEX.items()}
 
 class GameState:
     def __init__(self, game_board, players: List, player_to_move: int):
@@ -264,13 +286,13 @@ class GameState:
         return cloned_state
 
     def encode(self) -> (torch.Tensor, torch.Tensor, torch.Tensor):
-        grid_size = 9  # 5-hex radius translates to a 11x11 grid
+        grid_size = 9  # 5-hex radius translates to a 9x9 grid
         num_value_channels = 6  # Possible tile values: 0-5
         num_player_channels = 2  # Two players
         num_channels = num_value_channels + num_player_channels
 
         # Initialize a tensor with zeros
-        board_tensor = torch.zeros((num_channels, grid_size, grid_size), dtype=torch.float32)
+        board_tensor = torch.zeros((1 ,num_channels, grid_size, grid_size), dtype=torch.float32)
         player1_points_tensor = torch.zeros(5, dtype=torch.float32)
         player2_points_tensor = torch.zeros(5, dtype=torch.float32)
 
@@ -279,18 +301,35 @@ class GameState:
             board_tensor[tile.get_value(), x + 4 , y + 4] = 1.0
 
             if tile.is_occupied:
-                board_tensor[num_value_channels + self.get_player_on_hex(x,y), x + 4, y + 4] = 1.0
+                if self.get_player_to_move() == self.get_player_on_hex(x,y):
+                    board_tensor[num_value_channels, x + 4, y + 4] = 1.0
+                else:
+                    board_tensor[num_value_channels + 1, x + 4, y + 4] = 1.0
 
-        reserve1 = self.players[0].get_reserve()
-        for i in range(len(reserve1)):
-            player1_points_tensor[i] = reserve1[i]
+        reserve1 = self.players[self.player_to_move].get_reserve()
 
-        reserve2 = self.players[1].get_reserve()
-        for i in range(len(reserve2)):
-            player1_points_tensor[i] = reserve2[i]
+        # for i in range(len(reserve1)):
+        #     player1_points_tensor[i] = reserve1[i]
+        #
+        # reserve2 = self.players[self.player_to_move ^ 1].get_reserve()
+        # for i in range(len(reserve2)):
+        #     player1_points_tensor[i] = reserve2[i]
+        #
+        # for i in range(board_tensor.shape[0]):
+        #     plt.imshow(board_tensor[i].numpy(), cmap='gray')
+        #     plt.title(f"Channel {i}")
+        #     plt.colorbar()
+        #     plt.show()
 
-#        for i in range(board_tensor.shape[0]):
-#            plt.imshow(board_tensor[i].numpy(), cmap='gray')
-#            plt.title(f"Channel {i}")
-#            plt.colorbar()
-#            plt.show()
+        return board_tensor, player1_points_tensor, player2_points_tensor
+
+    def string_representation(self) -> str:
+        rep = ''
+
+        for tile in self.game_board.get_all_tiles():
+            rep += tile.get_value()
+
+        for player in self.players:
+            rep += player.get_pos()
+
+        return rep

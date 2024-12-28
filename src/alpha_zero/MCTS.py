@@ -1,101 +1,81 @@
 import logging
 import math
+from re import search
 
 import numpy as np
+import torch
 
-EPS = 1e-8
+from CNN import GliderCNN as cnn
+from GameState import GameState, MOVE_TO_INDEX
 
 log = logging.getLogger(__name__)
 
 
+def evaluate(game_state: GameState):
+    """
+    Evaluates the final game state and returns a score for the current player.
+    """
+    winner = game_state.get_leader()
+    if winner < 0:
+        return 0.5  # Tie
+    return 1.0 if winner == game_state.player_to_move else 0
+
+
 class MCTS():
-    def __init__(self, gameState, nnet, args):
-        self.gameState = gameState
+    SIMULATION_LIMIT = 10000  # Number of simulations per move
+    EXPLORATION_CONSTANT = math.sqrt(2)  # UCT exploration constant
+
+    def __init__(self, nnet: cnn):
         self.nnet = nnet
-        self.args = args
-        self.Qsa = {}  # stores Q values for s,a (as defined in the paper)
-        self.Nsa = {}  # stores #times edge s,a was visited
-        self.Ns = {}  # stores #times board s was visited
-        self.Ps = {}  # stores initial policy (returned by neural net)
+        self.Qsa = {}  # Expected reward taking an action a from a GameState s
+        self.Nsa = {}  # Number of times action a was taken from GameState s
+        self.Ns = {} # Number of times board s was visited
+        self.Ps = {}  # Stores initial policy from neural net
 
-        self.Es = {}  # stores game.getGameEnded ended for board s
-        self.Vs = {}  # stores game.getValidMoves for board s
+    def get_action_probabilities(self, game_state: GameState):
 
-    def getActionProb(self, canonicalBoard, temp=1):
-        for i in range(self.args.numMCTSSims):
-            self.search(canonicalBoard)
+        for i in range(MCTS.SIMULATION_LIMIT):
+            self.search(game_state)
 
-        s = self.gameState.stringRepresentation(canonicalBoard)
-        counts = [self.Nsa[(s, a)] if (s, a) in self.Nsa else 0 for a in range(self.gameState.getActionSize())]
+        probabilities = torch.zeros(len(MOVE_TO_INDEX))
 
-        if temp == 0:
-            bestAs = np.array(np.argwhere(counts == np.max(counts))).flatten()
-            bestA = np.random.choice(bestAs)
-            probs = [0] * len(counts)
-            probs[bestA] = 1
-            return probs
+        s = game_state.string_representation()
 
-        counts = [x ** (1. / temp) for x in counts]
-        counts_sum = float(sum(counts))
-        probs = [x / counts_sum for x in counts]
-        return probs
+        for move in game_state.get_moves():
+            probabilities[MOVE_TO_INDEX[move]] = self.Nsa[(s,move)] / (self.Ns[s] - 1)
 
-    def search(self, canonical_board):
-        s = self.gameState.stringRepresentation(canonical_board)
+        return probabilities
 
-        if s not in self.Es:
-            self.Es[s] = self.gameState.getGameEnded(canonical_board, 1)
-        if self.Es[s] != 0:
-            # terminal node
-            return -self.Es[s]
 
-        if s not in self.Ps:
-            # leaf node
-            self.Ps[s], v = self.nnet.predict(canonical_board)
-            valids = self.gameState.getValidMoves(canonical_board, 1)
-            self.Ps[s] = self.Ps[s] * valids  # masking invalid moves
-            sum_Ps_s = np.sum(self.Ps[s])
-            if sum_Ps_s > 0:
-                self.Ps[s] /= sum_Ps_s  # renormalize
-            else:
-                log.error("All valid moves were masked, doing a workaround.")
-                self.Ps[s] = self.Ps[s] + valids
-                self.Ps[s] /= np.sum(self.Ps[s])
+    def search(self, game_state: GameState):
 
-            self.Vs[s] = valids
-            self.Ns[s] = 0
-            return -v
+        if game_state.check_game_over(): return 1 - evaluate(game_state)
 
-        valids = self.Vs[s]
-        cur_best = -float('inf')
-        best_act = -1
+        s = game_state.string_representation()
 
-        # pick the action with the highest upper confidence bound
-        for a in range(self.gameState.getActionSize()):
-            if valids[a]:
-                if (s, a) in self.Qsa:
-                    u = self.Qsa[(s, a)] + self.args.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s]) / (
-                            1 + self.Nsa[(s, a)])
-                else:
-                    u = self.args.cpuct * self.Ps[s][a] * math.sqrt(self.Ns[s] + EPS)  # Q = 0 ?
+        if s not in self.Ns:
+            self.Ns[s] = 1
+            board, player1, player2 = game_state.encode()
+            with torch.inference_mode():
+                self.Ps[s], v = self.nnet.forward(board, player1, player2)
+            return 1 - v
 
-                if u > cur_best:
-                    cur_best = u
-                    best_act = a
 
-        a = best_act
-        next_s, next_player = self.gameState.getNextState(canonical_board, 1, a)
-        next_s = self.gameState.getCanonicalForm(next_s, next_player)
+        max_u, best_a = -float("inf"), -float("inf")
+        for a in game_state.get_moves():
+            u = self.Qsa[(s,a)] + MCTS.EXPLORATION_CONSTANT * self.Ps[s][MOVE_TO_INDEX[a]] * math.sqrt(self.Ns[s]) / (
+                        1 + self.Nsa[(s,a)])
+            if u > max_u:
+                max_u = u
+                best_a = a
+        a = best_a
 
-        v = self.search(next_s)
+        next_state = game_state.clone()
+        next_state.apply_move(a)
 
-        if (s, a) in self.Qsa:
-            self.Qsa[(s, a)] = (self.Nsa[(s, a)] * self.Qsa[(s, a)] + v) / (self.Nsa[(s, a)] + 1)
-            self.Nsa[(s, a)] += 1
-
-        else:
-            self.Qsa[(s, a)] = v
-            self.Nsa[(s, a)] = 1
+        v = self.search(next_state)
 
         self.Ns[s] += 1
-        return -v
+        self.Nsa[(s,a)] += 1
+        self.Qsa[(s,a)] = (self.Nsa[(s,a)] * self.Qsa[(s,a)] + v) / (self.Nsa[(s,a)])
+        return 1 - v

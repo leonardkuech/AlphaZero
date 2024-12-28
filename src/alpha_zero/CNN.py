@@ -1,16 +1,19 @@
 import torch
 import torch.nn as nn
 
-class BoardCNNWithPoints(nn.Module):
-    def __init__(self, num_channels, grid_size, num_points_features):
+from GameState import INDEX_TO_MOVE
+
+
+class GliderCNN(nn.Module):
+    def __init__(self, num_channels, grid_size, num_features_per_player):
         """
         Args:
-            num_channels (int): Number of channels in the board input.
-            grid_size (int): Width and height of the board (assumes square grid).
-            num_points_features (int): Number of features in the player's points array.
+            num_channels (int): Number of input channels for the board representation.
+            grid_size (int): Size of the board (assumed square, grid_size x grid_size).
+            num_features_per_player (int): Length of the feature tensor for each player.
         """
-        super(BoardCNNWithPoints, self).__init__()
-        self.grid_size = grid_size
+        super(GliderCNN, self).__init__()
+        self.device = torch.device('mps')
 
         # CNN for processing the board state
         self.cnn = nn.Sequential(
@@ -21,35 +24,99 @@ class BoardCNNWithPoints(nn.Module):
             nn.Flatten()
         )
 
-        # Compute the flattened output size of the CNN
+        # Calculate the flattened output size of the CNN
         self.cnn_output_size = 64 * grid_size * grid_size
 
-        # Fully connected layers
-        self.fc1 = nn.Linear(self.cnn_output_size + num_points_features, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 1)  # Example for a regression or scalar output
+        # Fully connected layers for shared representation
+        total_features = self.cnn_output_size + (2 * num_features_per_player)
+        self.fc_shared = nn.Sequential(
+            nn.Linear(total_features, 128),
+            nn.ReLU()
+        )
 
-    def forward(self, board, points):
-        """
-        Args:
-            board (torch.Tensor): Tensor of shape (batch_size, num_channels, grid_size, grid_size).
-            points (torch.Tensor): Tensor of shape (batch_size, num_points_features).
+        # Value head
+        self.value_head = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid()  # Outputs a scalar between 0 and 1
+        )
 
-        Returns:
-            torch.Tensor: Model output.
-        """
+        # Policy head
+        self.policy_head = nn.Sequential(
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, len(INDEX_TO_MOVE)),
+            nn.Softmax(dim=1)  # Outputs probabilities for all possible moves
+        )
+
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)
+
+    def forward(self, board, player1_features, player2_features):
         # Process the board state through the CNN
         cnn_out = self.cnn(board)  # Shape: (batch_size, cnn_output_size)
 
-        # Flatten the points tensor
-        points = points.view(points.size(0), -1)  # Shape: (batch_size, num_points_features)
-
-        # Concatenate CNN output and points
-        combined = torch.cat((cnn_out, points), dim=1)  # Shape: (batch_size, cnn_output_size + num_points_features)
+        # Concatenate player features with CNN output
+        combined = torch.cat((cnn_out, player1_features, player2_features), dim=1)
 
         # Fully connected layers
-        x = torch.relu(self.fc1(combined))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc_shared(combined)
 
-        return x
+        return self.policy_head(x), self.value_head(x)
+
+    def predict(self, board, player1, player2):
+        with torch.inference_mode():
+            return self.forward(board, player1, player2)
+        #Todo cache
+
+    def trainCNN(self, trainingExamples):
+        self.train()
+
+        # Separate the data into individual tensors
+        inputs, policy_targets, value_targets = zip(*trainingExamples)
+
+        # Unpack the inputs tuple for better clarity
+        board_tensors, player1_tensors, player2_tensors = zip(*inputs)
+
+        board_tensors = torch.cat(board_tensors)
+        player1_tensors = torch.cat(player1_tensors)
+        player2_tensors = torch.cat(player2_tensors)
+        policy_targets = torch.cat(policy_targets)
+        value_targets = torch.cat(value_targets)
+
+        # Create TensorDataset
+        dataset = torch.utils.data.TensorDataset(
+            board_tensors, player1_tensors, player2_tensors, policy_targets, value_targets
+        )
+        loader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
+
+        for board, player1, player2, policy, value in loader:
+            # Move tensors to the correct device
+            board = board.to(self.device)
+            player1 = player1.to(self.device)
+            player2 = player2.to(self.device)
+            policy = policy.to(self.device)
+            value = value.to(self.device)
+
+            self.optimizer.zero_grad()
+            # Forward pass
+            predicted_policy, predicted_value = self.forward(board, player1, player2)
+            # Compute loss
+            loss = self.loss(predicted_policy, predicted_value, policy, value)
+            print(loss.item())
+            # Backpropagation
+            loss.backward()
+            self.optimizer.step()
+
+        self.eval()
+
+    def loss(self, pred_policy, pred_value, target_policy, target_value):
+
+        value_loss = (pred_value - target_value).pow(2)
+
+        epsilon = 1e-7
+        policy_loss = - (target_policy * torch.log(pred_policy + epsilon)).sum(dim=1)
+
+        total_loss = value_loss + policy_loss
+
+        return total_loss.mean()

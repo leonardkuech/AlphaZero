@@ -1,6 +1,6 @@
 from Agent import Agent
 from CNN import GliderCNN
-from GameState import GameState
+from GameState import GameState, INDEX_TO_MOVE
 
 import numpy as np
 
@@ -13,4 +13,4 @@ class NNetAgent(Agent):
     def choose_action(self, game_state: GameState):
         policy, value = self.nnet.predict(game_state.encode())
         action = np.argmax(policy)
-        return action
+        return INDEX_TO_MOVE[action]

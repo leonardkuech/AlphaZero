@@ -5,7 +5,7 @@ from GameState import INDEX_TO_MOVE
 
 
 class GliderCNN(nn.Module):
-    def __init__(self, num_channels, grid_size, num_features_per_player):
+    def __init__(self, num_channels=8, grid_size=9, num_features_per_player=5):
         """
         Args:
             num_channels (int): Number of input channels for the board representation.
@@ -114,8 +114,12 @@ class GliderCNN(nn.Module):
 
         value_loss = (pred_value - target_value).pow(2)
 
+        print('value : ', value_loss.mean().item())
+
         epsilon = 1e-7
+
         policy_loss = - (target_policy * torch.log(pred_policy + epsilon)).sum(dim=1)
+        print('policy : ' , policy_loss.mean().item())
 
         total_loss = value_loss + policy_loss
 

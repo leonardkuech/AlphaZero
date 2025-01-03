@@ -26,8 +26,10 @@ def map():
 
     return map
 
+
 MOVE_TO_INDEX = map()
 INDEX_TO_MOVE = {v: k for k, v in MOVE_TO_INDEX.items()}
+
 
 class GameState:
     def __init__(self, game_board, players: List, player_to_move: int):
@@ -85,7 +87,8 @@ class GameState:
         return self.not_moved_count >= 2 or self.not_winnable()
 
     def not_winnable(self):
-        return abs(self.players[0].get_bank() - self.players[1].get_bank()) > self.game_board.get_remaining_tiles_value()
+        return abs(
+            self.players[0].get_bank() - self.players[1].get_bank()) > self.game_board.get_remaining_tiles_value()
 
     def check_bank(self) -> List[int]:
         return [player.get_bank() for player in self.players]
@@ -292,28 +295,28 @@ class GameState:
         num_channels = num_value_channels + num_player_channels
 
         # Initialize a tensor with zeros
-        board_tensor = torch.zeros((1 ,num_channels, grid_size, grid_size), dtype=torch.float32)
-        player1_points_tensor = torch.zeros(5, dtype=torch.float32)
-        player2_points_tensor = torch.zeros(5, dtype=torch.float32)
+        board_tensor = torch.zeros((1, num_channels, grid_size, grid_size), dtype=torch.float32)
+        player1_points_tensor = torch.zeros((1,5), dtype=torch.float32)
+        player2_points_tensor = torch.zeros((1,5), dtype=torch.float32)
 
         for tile in self.game_board.get_all_tiles():
             x, y = tile.x, tile.y
-            board_tensor[tile.get_value(), x + 4 , y + 4] = 1.0
+            board_tensor[0, tile.get_value(), x + 4, y + 4] = 1.0
 
             if tile.is_occupied:
-                if self.get_player_to_move() == self.get_player_on_hex(x,y):
+                if self.get_player_to_move() == self.get_player_on_hex(x, y):
                     board_tensor[num_value_channels, x + 4, y + 4] = 1.0
                 else:
                     board_tensor[num_value_channels + 1, x + 4, y + 4] = 1.0
 
         reserve1 = self.players[self.player_to_move].get_reserve()
 
-        # for i in range(len(reserve1)):
-        #     player1_points_tensor[i] = reserve1[i]
-        #
-        # reserve2 = self.players[self.player_to_move ^ 1].get_reserve()
-        # for i in range(len(reserve2)):
-        #     player1_points_tensor[i] = reserve2[i]
+        for i in range(len(reserve1)):
+            player1_points_tensor[0,i] = reserve1[i]
+
+        reserve2 = self.players[self.player_to_move ^ 1].get_reserve()
+        for i in range(len(reserve2)):
+            player1_points_tensor[0,i] = reserve2[i]
         #
         # for i in range(board_tensor.shape[0]):
         #     plt.imshow(board_tensor[i].numpy(), cmap='gray')
@@ -327,9 +330,9 @@ class GameState:
         rep = ''
 
         for tile in self.game_board.get_all_tiles():
-            rep += tile.get_value()
+            rep += str(tile.get_value())
 
         for player in self.players:
-            rep += player.get_pos()
+            rep += str(player.get_pos())
 
         return rep

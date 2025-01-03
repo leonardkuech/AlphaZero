@@ -15,10 +15,11 @@ coloredlogs.install(level='INFO')
 def main():
     log.info('Starting Alpha Zero')
 
-    cnn_tests.cnn_loss_tests()
-    
+    # cnn_tests.cnn_loss_tests()
+    nnet = GliderCNN()
 
-
+    trainer = Trainer(nnet)
+    trainer.learn(1,2)
 
 
 

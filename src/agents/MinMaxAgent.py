@@ -53,7 +53,7 @@ class MinMaxAgent(Agent):
         """
         Finds the best move using the MinMax algorithm.
         """
-        best_move = -1
+        best_move = float('inf')
         best_value = float('-inf')
 
         for move in game_state.get_moves():

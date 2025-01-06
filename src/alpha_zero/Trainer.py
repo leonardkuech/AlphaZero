@@ -2,21 +2,22 @@ import numpy as np
 import logging
 
 import torch
+from sympy import false
 
 from CNN import GliderCNN
 from Game import Game
+from GameState import INDEX_TO_MOVE
 from MCTS import MCTS
 from NNetAgent import NNetAgent
 
 logger = logging.getLogger(__name__)
 
 class Trainer:
-    PIT_GAMES = 100
-    THRESHOLD = 0.55
+    PIT_GAMES = 10
+    THRESHOLD = 0.5
 
     def __init__(self, nnet: GliderCNN):
-
-        self.nnet = nnet
+        self.nnet = torch.compile(nnet, mode='max-autotune')
         self.training_examples= []
 
     def learn(self, iterations, games):
@@ -26,41 +27,55 @@ class Trainer:
             logger.info(f'Starting Iteration #{i} ...')
 
             for j in range(games):
-                logger.info(f'Starting Game #{j} ...')
                 self.play()
+                logger.info(f'Game #{j} done')
 
-            new_nnet = self.trainNNet()
+            logger.info(f'Finished self play')
+
+            new_nnet = self.nnet.trainCNN(self.training_examples)
             percentage_won = self.pit(self.nnet, new_nnet)
 
-            if percentage_won > Trainer.THRESHOLD:
+            if percentage_won >=Trainer.THRESHOLD:
+                logger.info('Updated CNN to next Generation')
                 self.nnet = new_nnet
 
+            self.nnet = new_nnet
     # TODO save nnet
 
 
     def play(self):
 
         game = Game.create_game().game_state
-        trainExamples = []
-        self.curPlayer = 0
-        episodeStep = 0
+        train_examples = []
 
         mcts = MCTS(self.nnet)
 
         while True:
             prob = mcts.get_action_probabilities(game)
-            trainExamples.append([game.encode(), prob, None])
+            train_examples.append([game.encode(), prob.reshape(1,62), None])
+            prob_np = prob.detach().cpu().numpy().astype(np.float64)
+            prob_np /= np.sum(prob_np)
+
+
+            valid = false
+            move = None
+
+            while not valid:
+                index = np.random.choice(len(prob), p=prob_np)
+                move = INDEX_TO_MOVE[index]
+
+                valid = game.apply_move(move)
 
             if game.check_game_over():
                 winner = game.get_leader() # assign winner
-                for i, sample in enumerate(trainExamples):
+                for i, sample in enumerate(train_examples):
                     if winner < 0:
-                        sample[2] = torch.tensor(0.5)
+                        sample[2] = torch.tensor([0])
                     else:
-                        sample[2] = torch.tensor(1) if i % 2 == winner else torch.tensor(0)
+                        sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
                 break
 
-        self.training_examples.extend(trainExamples)
+        self.training_examples.extend(train_examples)
 
 
     def pit(self, old_nnet, new_nnet) -> float:
@@ -79,9 +94,14 @@ class Trainer:
                 game = Game.create_agent_game(agent_new, agent_old)
                 player_id_new_agent = 0
 
+            game.init()
             game.start()
+            leader = game.game_state.get_leader()
+            logger.info(f'Player {leader} won game #{i} with {game.game_state.check_bank()[leader]} points against {game.game_state.check_bank()[leader ^ 1]} points')
 
-            if game.game_state.get_leader() == player_id_new_agent:
+            if leader == player_id_new_agent:
                 games_won += 1
+
+        logger.info(f'Player {self.PIT_GAMES} games and won {games_won}')
 
         return games_won / Trainer.PIT_GAMES

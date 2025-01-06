@@ -56,7 +56,7 @@ class PrunedMinMaxAgent(Agent):
         """
         Finds the best move using Alpha-Beta pruning.
         """
-        best_move = -1
+        best_move = float('-inf')
         best_value = float('-inf')
 
         for move in game_state.get_moves():
@@ -75,6 +75,7 @@ class PrunedMinMaxAgent(Agent):
                 best_value = move_value
                 best_move = move
 
+        print('MinMax move: ', best_move)
         return best_move
 
     def _evaluate_game_state(self, game_state) -> int:

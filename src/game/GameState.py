@@ -39,6 +39,8 @@ class GameState:
         self.game_started = False
         self.not_moved_count = 0
         self.placed = 0
+        self.valid_moves = []
+        self.valid_moves_calculated = False
 
     @staticmethod
     def in_bounds(x: int, y: int, z: int) -> bool:
@@ -114,6 +116,7 @@ class GameState:
             if move == float('-inf'):
                 self.increment_not_moved_count()
                 self.next_player_to_move()
+                self.valid_moves_calculated = False
                 return True
             elif self.check_move_valid(move):
                 self.set_not_moved_count(0)
@@ -136,23 +139,35 @@ class GameState:
                 start.set_occupied(False)
                 current_player.set_pos(stop.get_x(), stop.get_y())
                 self.next_player_to_move()
+                self.valid_moves_calculated = False
                 return True
             return False
         else:
-            hex_tile = self.game_board.get_tile(c=move)
-            if hex_tile.is_occupied or hex_tile.get_value() != 1:
+            if move == float('-inf'):
                 return False
-            hex_tile.set_occupied(True)
-            current_player = self.get_player_to_move()
-            current_player.set_pos(hex_tile.x, hex_tile.y)
-            self.placed += 1
-            if self.placed >= 2:
-                self.game_started = True
-            self.next_player_to_move()
-            return True
+            hex_tile = self.game_board.get_tile(c=move)
+            if self.check_move_valid(move):
+                hex_tile.set_occupied(True)
+                current_player = self.get_player_to_move()
+                current_player.set_pos(hex_tile.x, hex_tile.y)
+                self.placed += 1
+                if self.placed >= 2:
+                    self.game_started = True
+                self.next_player_to_move()
+                self.valid_moves_calculated = False
+                return True
+            return False
 
     def check_move_valid(self, move: int) -> bool:
-        return move in self.get_all_possible_moves()
+        if self.game_started:
+            if move == float('-inf'):
+                return True
+            return move in self.get_all_possible_moves()
+        else:
+            if move == float('-inf'):
+                return False
+            hex_tile = self.game_board.get_tile(c=move)
+            return not hex_tile.is_occupied and hex_tile.get_value() == 1
 
     def get_moves(self) -> List[int]:
         if self.game_started:
@@ -173,6 +188,7 @@ class GameState:
         return self.get_all_possible_moves() + [float('-inf')]
 
     def get_all_positive_moves(self):
+
         player = self.get_player_to_move()
         start = self.game_board.get_tile(player.get_pos_x(), player.get_pos_y())
 
@@ -203,9 +219,12 @@ class GameState:
                                                                                                      move) >= 0
                 ]
 
-        return moves
+        return self.valid_moves
 
     def get_all_possible_moves(self) -> List[int]:
+        if self.valid_moves_calculated:
+            return self.valid_moves
+
         # Assuming Player and HexTile have similar methods to Java counterparts
         player = self.get_player_to_move()
         start_tile = self.game_board.get_tile(c=player.get_pos())
@@ -230,7 +249,10 @@ class GameState:
                     moves.extend(self.get_moves_with_range(i + 1, start_tile))
             moves = [move for move in moves if not self.player_is_in_way(start_tile.get_cantor(), move)]
 
-        return moves
+        self.valid_moves = moves
+        self.valid_moves_calculated = True
+
+        return self.valid_moves
 
     def get_moves_with_range(self, range_value, start: HexTile):
         moves = []
@@ -285,6 +307,7 @@ class GameState:
         cloned_players = [player.clone() for player in self.players]
         cloned_state = GameState(cloned_board, cloned_players, self.player_to_move)
         cloned_state.set_not_moved_count(self.not_moved_count)
+        cloned_state.placed = self.placed
         cloned_state.set_game_started(self.game_started)
         return cloned_state
 
@@ -305,9 +328,9 @@ class GameState:
 
             if tile.is_occupied:
                 if self.get_player_to_move() == self.get_player_on_hex(x, y):
-                    board_tensor[num_value_channels, x + 4, y + 4] = 1.0
+                    board_tensor[0, num_value_channels, x + 4, y + 4] = 1.0
                 else:
-                    board_tensor[num_value_channels + 1, x + 4, y + 4] = 1.0
+                    board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
 
         reserve1 = self.players[self.player_to_move].get_reserve()
 
@@ -334,5 +357,7 @@ class GameState:
 
         for player in self.players:
             rep += str(player.get_pos())
+
+        rep += str(self.player_to_move)
 
         return rep

@@ -13,7 +13,7 @@ class GliderCNN(nn.Module):
             num_features_per_player (int): Length of the feature tensor for each player.
         """
         super(GliderCNN, self).__init__()
-        self.device = torch.device('mps')
+        self.device = torch.device('cpu')
 
         # CNN for processing the board state
         self.cnn = nn.Sequential(
@@ -39,7 +39,7 @@ class GliderCNN(nn.Module):
             nn.Linear(128, 64),
             nn.ReLU(),
             nn.Linear(64, 1),
-            nn.Sigmoid()  # Outputs a scalar between 0 and 1
+            nn.Tanh()  # Outputs a scalar between -1 and 1
         )
 
         # Policy head
@@ -51,6 +51,7 @@ class GliderCNN(nn.Module):
         )
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)
+        self.to(self.device)
 
     def forward(self, board, player1_features, player2_features):
         # Process the board state through the CNN
@@ -64,13 +65,23 @@ class GliderCNN(nn.Module):
 
         return self.policy_head(x), self.value_head(x)
 
+    @torch.compile
     def predict(self, board, player1, player2):
         with torch.inference_mode():
+            board = board.to(self.device)
+            player1 = player1.to(self.device)
+            player2 = player2.to(self.device)
             return self.forward(board, player1, player2)
         #Todo cache
 
     def trainCNN(self, trainingExamples):
-        self.train()
+        # Create a new copy of the model (self) to avoid overwriting
+        updated_nnet = self.__class__()  # Assumes your model class can be instantiated without arguments
+        updated_nnet.load_state_dict(self.state_dict())  # Copy model parameters
+        updated_nnet.to(self.device)  # Move the new model to the correct device
+        updated_nnet = torch.compile(updated_nnet)
+
+        updated_nnet.train()
 
         # Separate the data into individual tensors
         inputs, policy_targets, value_targets = zip(*trainingExamples)
@@ -78,11 +89,11 @@ class GliderCNN(nn.Module):
         # Unpack the inputs tuple for better clarity
         board_tensors, player1_tensors, player2_tensors = zip(*inputs)
 
-        board_tensors = torch.cat(board_tensors)
-        player1_tensors = torch.cat(player1_tensors)
-        player2_tensors = torch.cat(player2_tensors)
-        policy_targets = torch.cat(policy_targets)
-        value_targets = torch.cat(value_targets)
+        board_tensors = torch.cat(board_tensors).to(self.device)
+        player1_tensors = torch.cat(player1_tensors).to(self.device)
+        player2_tensors = torch.cat(player2_tensors).to(self.device)
+        policy_targets = torch.cat(policy_targets).to(self.device)
+        value_targets = torch.cat(value_targets).to(self.device)
 
         # Create TensorDataset
         dataset = torch.utils.data.TensorDataset(
@@ -91,24 +102,27 @@ class GliderCNN(nn.Module):
         loader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
 
         for board, player1, player2, policy, value in loader:
-            # Move tensors to the correct device
-            board = board.to(self.device)
-            player1 = player1.to(self.device)
-            player2 = player2.to(self.device)
-            policy = policy.to(self.device)
-            value = value.to(self.device)
+            board, player1, player2, policy, value = (
+                board.to(self.device),
+                player1.to(self.device),
+                player2.to(self.device),
+                policy.to(self.device),
+                value.to(self.device),
+            )
 
-            self.optimizer.zero_grad()
+            updated_nnet.optimizer.zero_grad()
             # Forward pass
-            predicted_policy, predicted_value = self.forward(board, player1, player2)
+            predicted_policy, predicted_value = updated_nnet.forward(board, player1, player2)
             # Compute loss
-            loss = self.loss(predicted_policy, predicted_value, policy, value)
+            loss = updated_nnet.loss(predicted_policy, predicted_value, policy, value)
             print(loss.item())
             # Backpropagation
             loss.backward()
-            self.optimizer.step()
+            updated_nnet.optimizer.step()
 
-        self.eval()
+        updated_nnet.eval()
+
+        return updated_nnet
 
     def loss(self, pred_policy, pred_value, target_policy, target_value):
 

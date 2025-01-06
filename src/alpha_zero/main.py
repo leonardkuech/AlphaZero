@@ -1,15 +1,16 @@
 import numpy as np
 import logging
 import coloredlogs
+import torch
 
 from Trainer import Trainer
 from CNN import GliderCNN
 import cnn_tests
 
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 coloredlogs.install(level='INFO')
-
 
 
 def main():
@@ -19,7 +20,8 @@ def main():
     nnet = GliderCNN()
 
     trainer = Trainer(nnet)
-    trainer.learn(1,2)
+    trainer.learn(1,1)
+
 
 
 

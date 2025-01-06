@@ -7,7 +7,7 @@ from Agent import Agent
 
 
 class MCTSAgent(Agent):
-    SIMULATION_LIMIT = 10000  # Number of simulations per move
+    SIMULATION_LIMIT = 30000  # Number of simulations per move
     EXPLORATION_CONSTANT = math.sqrt(2)  # UCT exploration constant
 
     def __init__(self, name: str, player_id: int):
@@ -37,8 +37,7 @@ class MCTSAgent(Agent):
                 result = self._evaluate(promising_node.game_state)
                 self._backpropagate(promising_node, result)
 
-        print(f'-----------{_}------------')
-        self.print_tree(root)
+        # self.print_tree(root)
 
         return root.get_best_move()
 

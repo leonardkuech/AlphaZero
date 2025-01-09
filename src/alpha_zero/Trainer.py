@@ -13,7 +13,7 @@ from NNetAgent import NNetAgent
 logger = logging.getLogger(__name__)
 
 class Trainer:
-    PIT_GAMES = 10
+    PIT_GAMES = 20
     THRESHOLD = 0.5
 
     def __init__(self, nnet: GliderCNN):
@@ -25,6 +25,7 @@ class Trainer:
 
         for i in range(iterations):
             logger.info(f'Starting Iteration #{i} ...')
+            self.training_examples = []
 
             for j in range(games):
                 self.play()
@@ -32,26 +33,31 @@ class Trainer:
 
             logger.info(f'Finished self play')
 
+            count = 0
+            for sample in self.training_examples:
+                if sample[1][0, 61] == 0:
+                    count += 1
+            logger.info(f'Sample {count} from {len(self.training_examples)} games ')
             new_nnet = self.nnet.trainCNN(self.training_examples)
+            new_nnet = new_nnet.trainCNN(self.training_examples)
             percentage_won = self.pit(self.nnet, new_nnet)
 
             if percentage_won >=Trainer.THRESHOLD:
                 logger.info('Updated CNN to next Generation')
                 self.nnet = new_nnet
 
-            self.nnet = new_nnet
-    # TODO save nnet
-
+        torch.save(self.nnet, "~/Documents/BA/AlphaZero/sugar_gliders_nnet.pth")
 
     def play(self):
 
         game = Game.create_game().game_state
         train_examples = []
-
         mcts = MCTS(self.nnet)
 
+        turns = 0
         while True:
             prob = mcts.get_action_probabilities(game)
+            #logger.info(f'{prob}')
             train_examples.append([game.encode(), prob.reshape(1,62), None])
             prob_np = prob.detach().cpu().numpy().astype(np.float64)
             prob_np /= np.sum(prob_np)
@@ -65,16 +71,28 @@ class Trainer:
                 move = INDEX_TO_MOVE[index]
 
                 valid = game.apply_move(move)
+                turns += 1
 
+            #logger.info(f'{move}')
             if game.check_game_over():
                 winner = game.get_leader() # assign winner
                 for i, sample in enumerate(train_examples):
                     if winner < 0:
-                        sample[2] = torch.tensor([0])
+                        sample[2] = torch.tensor([-1])
                     else:
                         sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
-                break
 
+                cleaned_samples = []
+                for sample in train_examples:
+                    policy_w_pass = sample[1]
+                    policy_w_pass[0, 61] = 0
+                    if policy_w_pass.sum() > 0:
+                        policy_w_pass[0] /= policy_w_pass[0].sum()
+                        cleaned_samples.append([sample[0], policy_w_pass, sample[2]])
+                    else:
+                        cleaned_samples.append(sample)
+                break
+        logging.info(f'{turns}')
         self.training_examples.extend(train_examples)
 
 
@@ -97,7 +115,10 @@ class Trainer:
             game.init()
             game.start()
             leader = game.game_state.get_leader()
-            logger.info(f'Player {leader} won game #{i} with {game.game_state.check_bank()[leader]} points against {game.game_state.check_bank()[leader ^ 1]} points')
+            if leader < 0:
+                logger.info(f'Draw | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')
+            else:
+                logger.info(f'Player {leader} won game #{i} | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')
 
             if leader == player_id_new_agent:
                 games_won += 1

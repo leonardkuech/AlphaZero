@@ -1,9 +1,11 @@
+import logging
+
 import torch
 import torch.nn as nn
 
 from GameState import INDEX_TO_MOVE
 
-
+logger = logging.getLogger(__name__)
 class GliderCNN(nn.Module):
     def __init__(self, num_channels=8, grid_size=9, num_features_per_player=5):
         """
@@ -101,6 +103,9 @@ class GliderCNN(nn.Module):
         )
         loader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
 
+        acc_total = 0
+        loss_total = 0
+
         for board, player1, player2, policy, value in loader:
             board, player1, player2, policy, value = (
                 board.to(self.device),
@@ -115,11 +120,17 @@ class GliderCNN(nn.Module):
             predicted_policy, predicted_value = updated_nnet.forward(board, player1, player2)
             # Compute loss
             loss = updated_nnet.loss(predicted_policy, predicted_value, policy, value)
-            print(loss.item())
+            loss_total += loss.item()
+            acc =  (torch.argmax(policy, dim=1) == torch.argmax(predicted_policy, dim=1)).sum() / len(policy)
+            acc_total += acc
             # Backpropagation
             loss.backward()
             updated_nnet.optimizer.step()
 
+        acc_total = acc_total / len(loader)
+        loss_total = loss_total / len(loader)
+        logger.info(f'Pol Acc = {acc_total}')
+        logger.info(f'Loss is {loss_total}')
         updated_nnet.eval()
 
         return updated_nnet
@@ -128,12 +139,9 @@ class GliderCNN(nn.Module):
 
         value_loss = (pred_value - target_value).pow(2)
 
-        print('value : ', value_loss.mean().item())
-
         epsilon = 1e-7
 
         policy_loss = - (target_policy * torch.log(pred_policy + epsilon)).sum(dim=1)
-        print('policy : ' , policy_loss.mean().item())
 
         total_loss = value_loss + policy_loss
 

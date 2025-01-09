@@ -357,6 +357,10 @@ class GameState:
 
         for player in self.players:
             rep += str(player.get_pos())
+            for x in player.get_reserve():
+                rep += str(x)
+
+
 
         rep += str(self.player_to_move)
 

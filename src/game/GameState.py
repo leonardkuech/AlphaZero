@@ -4,6 +4,7 @@ import torch
 import matplotlib.pyplot as plt
 from sympy.physics.units import current
 
+from Board import Board
 from Cantor import calc_cantor
 from Hextile import HexTile
 
@@ -32,7 +33,7 @@ INDEX_TO_MOVE = {v: k for k, v in MOVE_TO_INDEX.items()}
 
 
 class GameState:
-    def __init__(self, game_board, players: List, player_to_move: int):
+    def __init__(self, game_board: Board, players: List, player_to_move: int):
         self.players = players
         self.game_board = game_board
         self.player_to_move = player_to_move

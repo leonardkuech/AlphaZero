@@ -6,7 +6,6 @@ import random
 from Game import Game
 from HexGridUI import HexGridUI
 from MCTSAgent import MCTSAgent
-from HeuristikMCTSAgent import HeuristicMCTSAgent
 from MinMaxAgent import MinMaxAgent
 from PrunedMinMaxAgent import PrunedMinMaxAgent
 from RandomAgent import RandomAgent

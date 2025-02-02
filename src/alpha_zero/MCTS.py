@@ -25,7 +25,7 @@ def evaluate(game_state: GameState):
 
 class MCTS():
 
-    def __init__(self, nnet: cnn, exp_const = 0.1, simulations = 100):
+    def __init__(self, nnet: cnn, exp_const = 0.1, simulations = 200):
         self.nnet = nnet
         self.Qsa = {}  # Expected reward taking an action a from a GameState s
         self.Nsa = {}  # Number of times action a was taken from GameState s

@@ -1,4 +1,5 @@
 import torch
+from sympy.unify.core import index
 
 from Agent import Agent
 from CNN import GliderCNN
@@ -19,6 +20,7 @@ class NNetAgent(Agent):
     def choose_move(self, game_state: GameState):
         logger.debug(f'------------------------\n')
 
+
         mcts = MCTS(self.nnet, exp_const=0.1, simulations=25)
         prob = mcts.get_action_probabilities(game_state)
 
@@ -26,6 +28,8 @@ class NNetAgent(Agent):
 
         valid = False
         count = 0
+        index = -1
+        #print(prob)
 
 
         while not valid:
@@ -35,6 +39,7 @@ class NNetAgent(Agent):
             move = INDEX_TO_MOVE[index]
             valid = game_state.check_move_valid(move)
             prob[index] = 0
+
 
         logger.debug(f'{count} moves requested')
         logger.debug(f'Selected move {move}')

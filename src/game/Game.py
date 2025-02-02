@@ -105,6 +105,7 @@ class Game:
                 self.game_over()
 
     def game_over(self):
+        logger.info(f'Game Over in {self.turns} turns')
         self.game_state.set_game_started(False)
 
     def get_ui(self):

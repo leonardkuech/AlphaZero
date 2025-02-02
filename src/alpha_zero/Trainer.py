@@ -13,8 +13,8 @@ from NNetAgent import NNetAgent
 logger = logging.getLogger(__name__)
 
 class Trainer:
-    PIT_GAMES = 20
-    THRESHOLD = 0.5
+    PIT_GAMES = 100
+    THRESHOLD = 0.55
 
     def __init__(self, nnet: GliderCNN):
         self.nnet = torch.compile(nnet, mode='max-autotune')
@@ -25,7 +25,6 @@ class Trainer:
 
         for i in range(iterations):
             logger.info(f'Starting Iteration #{i} ...')
-            self.training_examples = []
 
             for j in range(games):
                 self.play()
@@ -80,21 +79,11 @@ class Trainer:
                     if winner < 0:
                         sample[2] = torch.tensor([-1])
                     else:
-                        #TODO ist das richtig
+                        #TODO ist das richtig?
                         sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
-
-                cleaned_samples = []
-                for sample in train_examples:
-                    policy_w_pass = sample[1]
-                    policy_w_pass[0, 61] = 0
-                    if policy_w_pass.sum() > 0:
-                        policy_w_pass[0] /= policy_w_pass[0].sum()
-                        cleaned_samples.append([sample[0], policy_w_pass, sample[2]])
-                    else:
-                        cleaned_samples.append(sample)
                 break
-        logging.info(f'{turns}')
-        self.training_examples.extend(cleaned_samples)
+
+        self.training_examples.extend(train_examples)
 
 
     def pit(self, old_nnet, new_nnet) -> float:

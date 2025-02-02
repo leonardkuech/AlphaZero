@@ -15,17 +15,13 @@ class GreedyAgent(Agent):
 
     def get_greedy_move(self, game_state : GameState):
         moves = game_state.get_moves()
-
-        if not moves:  # Check if the list is empty
-            return float('-inf')  # Python equivalent of Integer.MIN_VALUE
-
-        highest_value = float('-inf')
+        highest_value =  0
         best_move = float('-inf')
 
         for move in moves:
             tile = game_state.game_board.get_tile(c=move)
 
-            if(tile.get_value() > highest_value):
+            if(tile.get_value() >= highest_value):
                 highest_value = tile.get_value()
                 best_move = move
 

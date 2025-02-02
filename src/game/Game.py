@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Game:
     def __init__(self, game_state):
+        self.turns = 2
         self.game_state = game_state
         self.ui = None
         self.has_ui = False
@@ -99,6 +100,7 @@ class Game:
                         # time.sleep(0.2)
                         break
                     # time.sleep(0.2)
+            self.turns += 1
             if self.game_state.check_game_over():
                 self.game_over()
 

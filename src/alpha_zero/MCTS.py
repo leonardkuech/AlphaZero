@@ -19,7 +19,7 @@ def evaluate(game_state: GameState):
     """
     winner = game_state.get_leader()
     if winner < 0:
-        return 0.0  # Tie
+        return -1.0  # Tie
     return 1.0 if winner == game_state.player_to_move else -1.0
 
 

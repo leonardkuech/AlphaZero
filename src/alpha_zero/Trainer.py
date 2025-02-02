@@ -80,6 +80,7 @@ class Trainer:
                     if winner < 0:
                         sample[2] = torch.tensor([-1])
                     else:
+                        #TODO ist das richtig
                         sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
 
                 cleaned_samples = []
@@ -93,7 +94,7 @@ class Trainer:
                         cleaned_samples.append(sample)
                 break
         logging.info(f'{turns}')
-        self.training_examples.extend(train_examples)
+        self.training_examples.extend(cleaned_samples)
 
 
     def pit(self, old_nnet, new_nnet) -> float:

@@ -25,7 +25,7 @@ def main():
     # agent2 = RandomAgent("Random")
     # agent2 = RandomPositiveAgent("RandomAgent")
     # agent2 = PrunedMinMaxAgent(8,1,"MinMaxAgent")
-    agent1 = MCTSAgent("MCTSAgent", 0)
+    agent1 = MCTSAgent("MCTSAgent", 1)
     # agent1 = HeuristicMCTSAgent("MCTSAgent", 1)
     game = Game.create_game_with_agent(agent=agent1)
     # game = Game.create_agent_game(agent1, agent2)

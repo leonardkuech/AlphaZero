@@ -115,6 +115,12 @@ class GameState:
     def apply_move(self, move: int) -> bool:
         if self.game_started:
             if move == float('-inf'):
+                current_player = self.get_player_to_move()
+                start = self.game_board.get_tile(c=current_player.get_pos())
+
+                if start.get_value() > 0:
+                    current_player.add_to_reserve(start.get_value())
+                    start.set_value(0)
                 self.increment_not_moved_count()
                 self.next_player_to_move()
                 self.valid_moves_calculated = False

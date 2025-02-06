@@ -9,6 +9,7 @@ from Game import Game
 from GameState import INDEX_TO_MOVE
 from MCTS import MCTS
 from NNetAgent import NNetAgent
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +45,8 @@ class Trainer:
             if percentage_won >=Trainer.THRESHOLD:
                 logger.info('Updated CNN to next Generation')
                 self.nnet = new_nnet
+                torch.save(self.nnet, f'../models/sugar_gliders_nnet{time.time()}.pth')
 
-        torch.save(self.nnet, "~/Documents/BA/AlphaZero/sugar_gliders_nnet.pth")
 
     def play(self):
 
@@ -106,6 +107,7 @@ class Trainer:
             game.start()
             leader = game.game_state.get_leader()
             if leader < 0:
+                games_won += 0.5
                 logger.info(f'Draw | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')
             else:
                 logger.info(f'Player {leader} won game #{i} | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')

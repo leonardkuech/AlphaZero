@@ -14,7 +14,7 @@ class GreedyAgent(Agent):
         return move
 
     def get_greedy_move(self, game_state : GameState):
-        moves = game_state.get_moves()
+        moves = game_state.get_moves_without_passing()
         highest_value =  0
         best_move = float('-inf')
 

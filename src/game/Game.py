@@ -10,7 +10,7 @@ from Board import Board
 logger = logging.getLogger(__name__)
 
 class Game:
-    def __init__(self, game_state):
+    def __init__(self, game_state: GameState):
         self.turns = 2
         self.game_state = game_state
         self.ui = None
@@ -105,6 +105,7 @@ class Game:
                 self.game_over()
 
     def game_over(self):
+        print("Game Over")
         logger.info(f'Game Over in {self.turns} turns')
         self.game_state.set_game_started(False)
 

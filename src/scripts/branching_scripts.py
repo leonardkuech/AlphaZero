@@ -40,23 +40,23 @@ def sim_branching():
 
     df = pd.DataFrame(padded_data)
 
-    df.to_csv('../files/branching.csv', index=False)
+    df.to_csv('../data/branching.csv', index=False)
 
 def calc_avg():
 
-    branch_df = pd.read_csv('../files/branching.csv')
+    branch_df = pd.read_csv('src/data/branching.csv')
 
     averages = branch_df.mean()
 
-    averages.to_csv('../files/average_branching.csv', index=False)
+    averages.to_csv('../data/average_branching.csv', index=False)
 
 def cut_first_entries():
 
-    branch_df = pd.read_csv('../files/average_branching.csv')
+    branch_df = pd.read_csv('src/data/average_branching.csv')
 
     entries_df = branch_df.head(100)
 
-    entries_df.to_csv('../files/cut_first_entries.csv', index=False, header=False)
+    entries_df.to_csv('../data/cut_first_entries.csv', index=False, header=False)
 
 def main():
     sim_branching()

@@ -1,42 +1,45 @@
 import math
 import random
+import time
 
-from fontTools.ttLib.ttVisitor import visit
+from sympy.codegen.ast import float32
 
 from Agent import Agent
 
 
-class MCTSAgent(Agent):
-    SIMULATION_LIMIT = 30000  # Number of simulations per move
+class TimedMCTSAgent(Agent):
     EXPLORATION_CONSTANT = math.sqrt(2)  # UCT exploration constant
 
-    def __init__(self, name: str, player_id: int):
+    def __init__(self, name: str, player_id: int, simulation_time=1.0):
         super().__init__(name)
         self.player_id = player_id
+        self.simulation_time=simulation_time
 
     def choose_move(self, game_state):
         """
         Uses MCTS to choose the best move for the current game state.
+        Instead of a fixed number of iterations, this version runs until
+        the allocated simulation time expires.
         """
         root = Node(game_state)
+        end_time = time.time() + self.simulation_time
 
-        for _ in range(self.SIMULATION_LIMIT):
+        while time.time() < end_time:
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():
                 if promising_node.visit_count == 0:
                     result = self._simulate_game(promising_node)
                     self._backpropagate(promising_node, result)
-
                 else:
                     self._expand_node(promising_node)
-                    note_to_simulate = promising_node.get_random_child_node()
-                    result = self._simulate_game(note_to_simulate)
-                    self._backpropagate(note_to_simulate, result)
-
+                    node_to_simulate = promising_node.get_random_child_node()
+                    result = self._simulate_game(node_to_simulate)
+                    self._backpropagate(node_to_simulate, result)
             else:
                 result = self._evaluate(promising_node.game_state)
                 self._backpropagate(promising_node, result)
 
+        # Uncomment the next line to print the tree for debugging purposes
         # self.print_tree(root)
 
         return root.get_best_move()
@@ -132,20 +135,20 @@ class Node:
         if child.visit_count == 0:
             return float('inf')
         return (
-                child.score / child.visit_count
-                + MCTSAgent.EXPLORATION_CONSTANT * math.sqrt(
-            math.log(self.visit_count) / child.visit_count
-        )
+            child.score / child.visit_count
+            + TimedMCTSAgent.EXPLORATION_CONSTANT * math.sqrt(
+                math.log(self.visit_count) / child.visit_count
+            )
         )
 
     def _calculate_inv_uct(self, child):
         if child.visit_count == 0:
             return float('inf')
         return (
-                (child.visit_count - child.score) / child.visit_count
-                + MCTSAgent.EXPLORATION_CONSTANT * math.sqrt(
-            math.log(self.visit_count) / child.visit_count
-        )
+            (child.visit_count - child.score) / child.visit_count
+            + TimedMCTSAgent.EXPLORATION_CONSTANT * math.sqrt(
+                math.log(self.visit_count) / child.visit_count
+            )
         )
 
     def get_best_move(self):

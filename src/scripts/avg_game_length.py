@@ -19,8 +19,8 @@ def simulate_games():
     df = pd.DataFrame(game_lengths)
     average_length_df = df.mean()
 
-    df.to_csv('../files/game_length.csv', index=False)
-    average_length_df.to_csv('../files/game_length_average.csv', index=False)
+    df.to_csv('../data/game_length.csv', index=False)
+    average_length_df.to_csv('../data/game_length_average.csv', index=False)
 
 
 def main():

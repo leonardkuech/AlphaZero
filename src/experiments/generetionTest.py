@@ -1,5 +1,4 @@
 import torch
-from hvplot.networkx import draw_networkx
 
 from NNetAgent import NNetAgent
 from Game import Game

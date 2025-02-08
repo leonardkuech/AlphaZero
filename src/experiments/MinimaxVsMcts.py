@@ -13,8 +13,7 @@ def run():
     for i in range(SIMULATIONS):
         if i % 2 == 0:
             minimax_agent = TimedMinimaxAgent("MinimaxAgent",  1.0)
-            # mcts_agent = TimedMCTSAgent("TimedMCTSAgent", 1, 1.0)
-            mcts_agent = MCTSAgent("MCTSAgent", 1)
+            mcts_agent = TimedMCTSAgent("TimedMCTSAgent", 1, 1.0)
             game = Game.create_agent_game(minimax_agent, mcts_agent)
             game.init()
             game.start()
@@ -28,8 +27,7 @@ def run():
             games_df.loc[i] = game_stats
 
         else:
-            # mcts_agent = TimedMCTSAgent("TimedMCTSAgent", 0, 1.0)
-            mcts_agent = MCTSAgent("MCTSAgent", 0)
+            mcts_agent = TimedMCTSAgent("TimedMCTSAgent", 0, 1.0)
             minimax_agent = TimedMinimaxAgent("MinimaxAgent",  1.0)
             game = Game.create_agent_game(mcts_agent, minimax_agent)
             game.init()

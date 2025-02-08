@@ -1,14 +1,15 @@
 import math
 
-from numba import njit
+from numba import njit, types
 import numpy as np
-from torch import read_vitals
+from numba.typed import Dict
 
 from Agent import Agent
 from GameState import GameState
 from Node import Node
 from Utils import calculate_uct, calculate_inv_uct
 
+NodeType = Node.class_type.instance_type
 
 @njit(cache=True)
 def simulate_game(game_state: GameState, player_id: int) -> float:
@@ -27,6 +28,18 @@ def evaluate_game_state(game_state: GameState, player_id: int) -> float:
         return 0.5  # Tie
     return 1.0 if winner == player_id else 0.0
 
+@njit(cache=True)
+def backpropagate(node : Node, node_set , result : float):
+    temp_node = node
+
+    temp_node.increment_visit_count()
+    temp_node.add_score(result)
+
+    while temp_node.parent >= 0:
+        temp_node = node_set[temp_node.parent]
+        temp_node.increment_visit_count()
+        temp_node.add_score(result)
+
 class MCTSAgent(Agent):
     SIMULATION_LIMIT = 30000  # Number of simulations per move
 
@@ -34,7 +47,7 @@ class MCTSAgent(Agent):
         super().__init__(name)
         self.player_id = player_id
         self.index = 0
-        self.nodes : dict[int, Node]= {}
+        self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
 
     def choose_move(self, game_state: GameState):
 
@@ -47,18 +60,17 @@ class MCTSAgent(Agent):
             if not promising_node.game_state.check_game_over():
                 if promising_node.visit_count == 0:
                     result = simulate_game(promising_node.game_state, self.player_id)
-                    self._backpropagate(promising_node, result)
+                    backpropagate(promising_node, self.nodes, result)
 
                 else:
                     self._expand_node(promising_node)
                     note_to_simulate = self.nodes[promising_node.get_random_child_node()]
                     result = simulate_game(note_to_simulate.game_state, self.player_id)
-                    self._backpropagate(note_to_simulate, result)
+                    backpropagate(note_to_simulate, self.nodes, result)
 
             else:
                 result = evaluate_game_state(promising_node.game_state, self.player_id)
-                self._backpropagate(promising_node, result)
-        print(self.get_robust_move(root))
+                backpropagate(promising_node, self.nodes, result)
         return self.get_robust_move(root)
 
     def _select_promising_node(self, node : Node) -> Node:
@@ -81,17 +93,6 @@ class MCTSAgent(Agent):
             self.index +=1
 
             node.add_child(child_node.key)
-
-    def _backpropagate(self, node : Node, result : float):
-        temp_node = node
-
-        temp_node.increment_visit_count()
-        temp_node.add_score(result)
-
-        while temp_node.parent >= 0:
-            temp_node = self.nodes[temp_node.parent]
-            temp_node.increment_visit_count()
-            temp_node.add_score(result)
 
     def get_child_with_highest_uct(self, parent : Node) -> Node:
         children = [self.nodes[child] for child in parent.children]
@@ -119,9 +120,6 @@ class MCTSAgent(Agent):
         children = [self.nodes[child] for child in node.children]
         best_visits = -1
         best_child = None
-
-        print([(child.visit_count, child.move) for child in children])
-
         for child in children:
             if child.visit_count > best_visits:
                 best_visits = child.visit_count

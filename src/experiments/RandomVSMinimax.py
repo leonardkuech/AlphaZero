@@ -5,13 +5,13 @@ from Game import Game
 from RandomAgent import RandomAgent
 from TimedMinimaxAgent import TimedMinimaxAgent
 
-SIMULATIONS = 100
+SIMULATIONS = 10
 def run():
     columns = ["Game", "Winner", "Turns"]
     games_df = pd.DataFrame(columns=columns)
     for i in range(SIMULATIONS):
         if i % 2 == 0:
-            mcts_agent = TimedMinimaxAgent("MinimaxAgent", 0, 1.0)
+            mcts_agent = TimedMinimaxAgent("MinimaxAgent",  1.0)
             random_agent = RandomAgent("RandomAgent")
             game = Game.create_agent_game(mcts_agent, random_agent)
             game.init()
@@ -27,7 +27,7 @@ def run():
 
         else:
             random_agent = RandomAgent("RandomAgent")
-            mcts_agent = TimedMinimaxAgent("MinimaxAgent", 1)
+            mcts_agent = TimedMinimaxAgent("MinimaxAgent", 1.0)
             game = Game.create_agent_game(random_agent, mcts_agent)
             game.init()
             game.start()

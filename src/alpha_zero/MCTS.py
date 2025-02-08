@@ -1,12 +1,10 @@
 import logging
 import math
-from re import search
-
-import numpy as np
 import torch
 
 from CNN import GliderCNN as cnn
-from GameState import GameState, MOVE_TO_INDEX
+from GameState import GameState
+from Utils import MOVE_TO_INDEX
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -14,9 +12,6 @@ log.setLevel(logging.DEBUG)
 EPS = 1e-8
 
 def evaluate(game_state: GameState):
-    """
-    Evaluates the final game state and returns a score for the current player.
-    """
     winner = game_state.get_leader()
     if winner < 0:
         return -1.0  # Tie
@@ -38,9 +33,7 @@ class MCTS():
     def get_action_probabilities(self, game_state: GameState):
 
         for i in range(self.SIMULATION_LIMIT):
-            log.debug(f'---------------Iteration {i}---------------------')
             self.search(game_state)
-            log.debug(f'---------------Iteration ended---------------------')
 
         probabilities = torch.zeros(len(MOVE_TO_INDEX))
 

@@ -1,7 +1,5 @@
-from Agent import Agent
 from CNN import GliderCNN
-from Game import Game
-from GameState import INDEX_TO_MOVE
+from Utils import INDEX_TO_MOVE
 
 import numpy as np
 import torch

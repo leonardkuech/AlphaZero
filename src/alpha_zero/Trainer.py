@@ -6,7 +6,7 @@ from sympy import false
 
 from CNN import GliderCNN
 from Game import Game
-from GameState import INDEX_TO_MOVE
+from Utils import INDEX_TO_MOVE
 from MCTS import MCTS
 from NNetAgent import NNetAgent
 import time

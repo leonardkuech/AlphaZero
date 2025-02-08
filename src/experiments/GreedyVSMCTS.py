@@ -28,7 +28,7 @@ def run():
 
         else:
             greedy_agent = GreedyAgent("GreedyAgent")
-            mcts_agent = TimedMCTSAgent("MCTSAgent", 1)
+            mcts_agent = TimedMCTSAgent("MCTSAgent", 1, 1.0)
             game = Game.create_agent_game(greedy_agent, mcts_agent)
             game.init()
             game.start()

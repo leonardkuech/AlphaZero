@@ -3,7 +3,8 @@ from sympy.unify.core import index
 
 from Agent import Agent
 from CNN import GliderCNN
-from GameState import GameState, INDEX_TO_MOVE, MOVE_TO_INDEX
+from GameState import GameState
+from Utils import INDEX_TO_MOVE, MOVE_TO_INDEX
 
 import numpy as np
 import logging
@@ -29,8 +30,6 @@ class NNetAgent(Agent):
         valid = False
         count = 0
         index = -1
-        #print(prob)
-
 
         while not valid:
             count += 1

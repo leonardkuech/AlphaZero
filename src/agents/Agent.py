@@ -8,7 +8,7 @@ class Agent(ABC):
         self._name = name
 
     @abstractmethod
-    def choose_move(self, game_state: GameState):
+    def choose_move(self, game_state: GameState) -> int:
         """
         Abstract method to choose a move based on the game state.
         Must be implemented by subclasses.

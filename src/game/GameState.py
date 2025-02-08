@@ -1,162 +1,150 @@
-from typing import List
-
 import torch
-import matplotlib.pyplot as plt
-from sympy.physics.units import current
+import numpy as np
 
-from Board import Board
-from Cantor import calc_cantor
-from Hextile import HexTile
+from Utils import calc_cantor, sum_reserve, distance, inverse_calc_cantor, in_bounds, sum_board_values
+from numba import int32, boolean, types, njit
+from numba.experimental import jitclass
+from numba.typed import List, Dict
 
-
-def map():
-    map = {}
-    count = 0
+@njit
+def create_game_board() -> dict[int, int]:
+    board = {}
 
     n = 4
+
+    values = np.repeat(np.arange(1, 6, dtype=np.int32), 12)
+    values = np.random.permutation(values)
+
+    fruit_index = 0
 
     for i in range(-n, n + 1):
         r1 = max(-n, -i - n)
         r2 = min(n, -i + n)
         for j in range(r1, r2 + 1):
-            if i + j + (- i - j) == 0:
-                map[calc_cantor(i, j)] = count
-                count += 1
+            if i + j + (-i-j) == 0:
+                if j == 0 and i == 0:
+                    board[calc_cantor(i,j)] = 0
+                else:
+                    board[calc_cantor(i,j)] = values[fruit_index]
+                    fruit_index += 1
+    return board
 
-    map[float('-inf')] = count
+spec = [
+    ('player', int32),
+    ('positions', types.Array(int32, 1, 'C')),
+    ('reserves', types.Array(int32, 2, 'C')),
+    ('game_board', types.DictType(int32, int32)),
+    ('player_to_move', int32),
+    ('game_started', boolean),
+    ('not_moved_count', int32),
+    ('placed', int32),
+    ('valid_moves', types.ListType(int32)),
+    ('valid_moves_calculated', boolean)
+]
 
-    return map
-
-
-MOVE_TO_INDEX = map()
-INDEX_TO_MOVE = {v: k for k, v in MOVE_TO_INDEX.items()}
-
-
+@jitclass(spec)
 class GameState:
-    def __init__(self, game_board: Board, players: List, player_to_move: int):
-        self.players = players
-        self.game_board = game_board
-        self.player_to_move = player_to_move
+    def __init__(self):
+        self.player = 2
+        # Use a NumPy array with the correct dtype.
+        self.positions = np.full(2, -1, dtype=np.int32)
+        # Create a 2x5 NumPy array for reserves.
+        self.reserves = np.zeros((2, 5), dtype=np.int32)
+        # Create a typed dictionary for the game board.
+        py_board = create_game_board()
+        self.game_board = Dict.empty(key_type=int32, value_type=int32)
+        for k, v in py_board.items():
+            self.game_board[k] = v
+
+        self.player_to_move = 0
         self.game_started = False
         self.not_moved_count = 0
         self.placed = 0
-        self.valid_moves = []
+        # Create an empty typed list for valid_moves.
+        self.valid_moves = List.empty_list(int32)
         self.valid_moves_calculated = False
 
-    @staticmethod
-    def in_bounds(x: int, y: int, z: int) -> bool:
-        return abs(x) < 5 and abs(y) < 5 and abs(z) < 5
-
-    def get_game_board(self):
-        return self.game_board
-
-    def set_game_board(self, game_board):
-        self.game_board = game_board
-
-    def get_player_to_move(self):
-        return self.players[self.player_to_move]
-
-    def get_player_id_to_move(self):
-        return self.player_to_move
-
-    def set_player_id_to_move(self, player_to_move: int):
-        self.player_to_move = player_to_move
-
-    def get_not_moved_count(self):
-        return self.not_moved_count
-
-    def set_not_moved_count(self, not_moved_count: int):
-        self.not_moved_count = not_moved_count
-
-    def get_players(self):
-        return self.players
-
-    def get_player(self, player_id: int):
-        return self.players[player_id]
-
     def next_player_to_move(self):
-        self.player_to_move = (self.player_to_move + 1) % len(self.players)
+        self.player_to_move = (self.player_to_move + 1) % self.player
 
     def increment_not_moved_count(self):
         self.not_moved_count += 1
 
-    def is_game_started(self) -> bool:
-        return self.game_started
-
-    def set_game_started(self, is_started: bool):
-        self.game_started = is_started
-
     def check_game_over(self) -> bool:
         return self.not_moved_count >= 2 or self.not_winnable()
 
-    def not_winnable(self):
+    def not_winnable(self) -> bool:
         return abs(
-            self.players[0].get_bank() - self.players[1].get_bank()) > self.game_board.get_remaining_tiles_value()
+            sum_reserve(self.reserves[0]) - sum_reserve(self.reserves[1])) > sum_board_values(self.game_board)
 
-    def check_bank(self) -> List[int]:
-        return [player.get_bank() for player in self.players]
-
-    def get_player_on_hex(self, x: int, y: int) -> int:
-        for idx, player in enumerate(self.players):
-            if player.get_pos() == calc_cantor(x, y):
-                return idx
-        return -1
+    def get_player_on_hex(self, c: int) -> int:
+        for i, pos in enumerate(self.positions):
+            if pos == c:
+                return i
 
     def get_score(self, player: int) -> int:
-        tile_value = self.players[player].get_current_hex(self.game_board).get_value()
-        return self.players[player].get_bank() + max(tile_value, 0)
+        tile_value = self.game_board[self.positions[player]]
+        return sum_reserve(self.reserves[player]) + tile_value
 
     def get_leader(self) -> int:
-        scores = [player.get_bank() for player in self.players]
+        scores = [sum_reserve(reserve) for reserve in self.reserves]
         if scores[0] == scores[1]:
             return -1
         return scores.index(max(scores))
 
     def apply_move(self, move: int) -> bool:
         if self.game_started:
-            if move == float('-inf'):
-                current_player = self.get_player_to_move()
-                start = self.game_board.get_tile(c=current_player.get_pos())
+            if move < 0:
+                current_player = self.player_to_move
+                start = self.positions[current_player]
 
-                if start.get_value() > 0:
-                    current_player.add_to_reserve(start.get_value())
-                    start.set_value(0)
+                if self.game_board[start] > 0:
+                    self.reserves[current_player][self.game_board[start] - 1] += 1
+                    self.game_board[start] = 0
                 self.increment_not_moved_count()
                 self.next_player_to_move()
                 self.valid_moves_calculated = False
                 return True
             elif self.check_move_valid(move):
-                self.set_not_moved_count(0)
-                current_player = self.get_player_to_move()
-                stop = self.game_board.get_tile(c=move)
-                start = self.game_board.get_tile(c=current_player.get_pos())
+                self.not_moved_count = 0
+                current_player = self.player_to_move
+                start = self.positions[current_player].item()
 
-                if start.get_value() > 0:
-                    current_player.add_to_reserve(start.get_value())
-                    start.set_value(0)
-                elif start.get_x() == 0 and start.get_y() == 0 and start.get_z() == 0:
-                    if not current_player.subtract_lowest_from_reserve():
-                        return False
+                if self.game_board[start] > 0:
+                    self.reserves[current_player][self.game_board[start] - 1] += 1
+                    self.game_board[start] = 0
+
                 else:
-                    distance = HexTile.get_distance(start, stop)
-                    if not current_player.subtract_from_reserve(distance):
-                        return False
 
-                stop.set_occupied(True)
-                start.set_occupied(False)
-                current_player.set_pos(stop.get_x(), stop.get_y())
+                    x, y = inverse_calc_cantor(start)
+                    if x == 0 and y == 0:
+
+                        lowest_index = -1
+                        index = 0
+                        for x in self.reserves[current_player]:
+                            if x > 0:
+                                lowest_index = index
+                                break
+                            index += 1
+                        if lowest_index >= 0:
+                            self.reserves[current_player][lowest_index] -= 1
+                        else:
+                            return False
+                    else:
+                        if self.reserves[current_player][distance(start, move) - 1] > 0:
+                            self.reserves[current_player][distance(start, move) - 1] -= 1
+                        else:
+                            return False
+
+                self.positions[current_player] = move
                 self.next_player_to_move()
                 self.valid_moves_calculated = False
                 return True
             return False
         else:
-            if move == float('-inf'):
-                return False
-            hex_tile = self.game_board.get_tile(c=move)
             if self.check_move_valid(move):
-                hex_tile.set_occupied(True)
-                current_player = self.get_player_to_move()
-                current_player.set_pos(hex_tile.x, hex_tile.y)
+                current_player = self.player_to_move
+                self.positions[current_player] = move
                 self.placed += 1
                 if self.placed >= 2:
                     self.game_started = True
@@ -165,158 +153,152 @@ class GameState:
                 return True
             return False
 
+
     def check_move_valid(self, move: int) -> bool:
         if self.game_started:
-            if move == float('-inf'):
+            if move < 0:
                 return True
             return move in self.get_all_possible_moves()
         else:
-            if move == float('-inf'):
+            if move < 0:
                 return False
-            hex_tile = self.game_board.get_tile(c=move)
-            return not hex_tile.is_occupied and hex_tile.get_value() == 1
+            return move not in self.positions and self.game_board[move] == 1
 
-    def get_moves(self) -> List[int]:
+    def get_placement_tiles(self) -> list[int]:
+        placement_tiles = List.empty_list(int32)
+        for key in self.game_board:
+            if self.game_board[key] == 1 and key not in self.positions:
+                placement_tiles.append(key)
+        return placement_tiles
+
+    def get_moves(self) -> list[int]:
         if self.game_started:
             return self.get_all_possible_moves_with_passing()
-        return self.game_board.get_placement_tile_ids()
+        return self.get_placement_tiles()
 
-    def get_moves_without_passing(self) -> List[int]:
+    def get_moves_without_passing(self) -> list[int]:
         if self.game_started:
             return self.get_all_possible_moves()
-        return self.game_board.get_placement_tile_ids()
+        return self.get_placement_tiles()
 
-    def get_positive_moves(self) -> List[int]:
-        if self.game_started:
-            return self.get_all_positive_moves()
-        return self.game_board.get_placement_tile_ids()
+    def get_all_possible_moves_with_passing(self) -> list[int]:
+        moves = self.get_all_possible_moves()
+        moves.append(np.int32(-1))
+        return moves
 
-    def get_all_possible_moves_with_passing(self) -> List[int]:
-        return self.get_all_possible_moves() + [float('-inf')]
-
-    def get_all_positive_moves(self):
-
-        player = self.get_player_to_move()
-        start = self.game_board.get_tile(player.get_pos_x(), player.get_pos_y())
-
-        moves = []
-
-        if start.get_value() > 0:
-            range_value = start.get_value()
-            moves = self.get_moves_with_range(range_value, start)
-            moves = [move for move in moves if not self.player_is_in_way(start.get_cantor(), move)]
-        else:
-            if start.get_x() == 0 and start.get_y() == 0 and start.get_z() == 0:
-                if not player.reserve_is_empty():
-                    for i in range(-4, 5):
-                        for j in range(-4, 5):
-                            for k in range(-4, 5):
-                                if i + j + k == 0:
-                                    moves.append(calc_cantor(i, j))
-            else:
-                reserve = player.get_reserve()
-                for i in range(len(reserve)):
-                    if reserve[i] > 0:
-                        moves.extend(self.get_moves_with_range(i + 1, start))
-
-                moves = [
-                    move for move in moves
-                    if
-                    not self.player_is_in_way(start.get_cantor(), move) and self.expected_move_value(start.get_cantor(),
-                                                                                                     move) >= 0
-                ]
-
-        return self.valid_moves
-
-    def get_all_possible_moves(self) -> List[int]:
+    def get_all_possible_moves(self) -> list[int]:
         if self.valid_moves_calculated:
             return self.valid_moves
 
-        # Assuming Player and HexTile have similar methods to Java counterparts
-        player = self.get_player_to_move()
-        start_tile = self.game_board.get_tile(c=player.get_pos())
-        moves = []
-        # Logic for computing moves
-        if (start_tile.value > 0):
-            moves.extend(self.get_moves_with_range(start_tile.value, start_tile))
-            moves = [move for move in moves if not self.player_is_in_way(start_tile.get_cantor(), move)]
+        player = self.player_to_move
+        start = self.positions[player].item()
 
+        moves = List.empty_list(int32)
 
-        elif start_tile.x == 0 and start_tile.y == 0:
-            if (not player.reserve_is_empty()):
-                for i in range(-4, 5):
-                    for j in range(-4, 5):
-                        for k in range(-4, 5):
-                            if i + j + k == 0 and not self.game_board.get_tile(c=calc_cantor(i, j)).is_occupied:
-                                moves.append(calc_cantor(i, j))
+        if self.game_board[start] > 0:
+            range_value = self.game_board[start]
+            moves = self.get_moves_with_range(range_value, start)
+            moves = self.remove_not_reachable(start, moves)
 
         else:
-            for i in range(len(player.reserve)):
-                if player.reserve[i] > 0:
-                    moves.extend(self.get_moves_with_range(i + 1, start_tile))
-            moves = [move for move in moves if not self.player_is_in_way(start_tile.get_cantor(), move)]
+
+            x, y = inverse_calc_cantor(start)
+
+            if x == 0 and y == 0:
+
+                if not sum_reserve(self.reserves[player]) == 0:
+
+                    for i in range(-4, 5):
+
+                        for j in range(-4, 5):
+
+                            for k in range(-4, 5):
+
+                                if i + j + k == 0:
+                                    moves.append(calc_cantor(i, j))
+            else:
+                for i in range(len(self.reserves[player])):
+                    if self.reserves[player][i] > 0:
+                        moves.extend(self.get_moves_with_range(i + 1, start))
+                moves = self.remove_not_reachable(start, moves)
 
         self.valid_moves = moves
         self.valid_moves_calculated = True
 
         return self.valid_moves
 
-    def get_moves_with_range(self, range_value, start: HexTile):
-        moves = []
-        if self.in_bounds(start.get_x() + range_value, start.get_y() - range_value, start.get_z()):
-            moves.append(calc_cantor(start.get_x() + range_value, start.get_y() - range_value))
-        if self.in_bounds(start.get_x() - range_value, start.get_y() + range_value, start.get_z()):
-            moves.append(calc_cantor(start.get_x() - range_value, start.get_y() + range_value))
-        if self.in_bounds(start.get_x() + range_value, start.get_y(), start.get_z() - range_value):
-            moves.append(calc_cantor(start.get_x() + range_value, start.get_y()))
-        if self.in_bounds(start.get_x() - range_value, start.get_y(), start.get_z() + range_value):
-            moves.append(calc_cantor(start.get_x() - range_value, start.get_y()))
-        if self.in_bounds(start.get_x(), start.get_y() + range_value, start.get_z() - range_value):
-            moves.append(calc_cantor(start.get_x(), start.get_y() + range_value))
-        if self.in_bounds(start.get_x(), start.get_y() - range_value, start.get_z() + range_value):
-            moves.append(calc_cantor(start.get_x(), start.get_y() - range_value))
+    def get_moves_with_range(self, range_value, start: int):
+        moves = List.empty_list(int32)
+        x, y = inverse_calc_cantor(start)
+        z = - x - y
+
+        if in_bounds(x + range_value, y - range_value, z):
+            moves.append(calc_cantor(x + range_value, y - range_value))
+        if in_bounds(x - range_value, y + range_value, z):
+            moves.append(calc_cantor(x - range_value, y + range_value))
+        if in_bounds(x + range_value, y, z - range_value):
+            moves.append(calc_cantor(x + range_value, y))
+        if in_bounds(x - range_value, y, z + range_value):
+            moves.append(calc_cantor(x - range_value, y))
+        if in_bounds(x, y + range_value, z - range_value):
+            moves.append(calc_cantor(x, y + range_value))
+        if in_bounds(x, y - range_value, z + range_value):
+            moves.append(calc_cantor(x, y - range_value))
         return moves
 
+    def remove_not_reachable(self, start : int, moves: List[int32]) -> List[int32]:
+        filtered_moves = List.empty_list(int32)
+        for move in moves:
+            if not self.player_is_in_way(start, move):
+                filtered_moves.append(move)
+        return filtered_moves
+
     def player_is_in_way(self, start, end):
-        start_hex = self.game_board.get_tile(c=start)
-        end_hex = self.game_board.get_tile(c=end)
-        movement = HexTile.subtract(end_hex, start_hex)
+        x, y = inverse_calc_cantor(start)
+        xe, ye = inverse_calc_cantor(end)
+
+
+        movement = [xe - x, ye - y]
+
         inc_x = 0 if movement[0] == 0 else movement[0] // abs(movement[0])
         inc_y = 0 if movement[1] == 0 else movement[1] // abs(movement[1])
-
-        x, y = start_hex.get_x(), start_hex.get_y()
 
         while True:
             x += inc_x
             y += inc_y
-            hex_tile = self.game_board.get_tile(x, y)
-            if hex_tile.is_occupied:
+
+            c = calc_cantor(x, y)
+
+            if c in self.positions:
                 return True
-            if hex_tile == end_hex:
+            if c == end:
                 break
 
         return False
 
-    def expected_move_value(self, start, end):
-        start_hex = self.game_board.get_tile(c=start)
-        end_hex = self.game_board.get_tile(c=end)
-        player = self.get_player_to_move()
+    def clone(self) -> "GameState":
+        # Create a new instance of GameState
+        cloned = GameState()
 
-        if start_hex.get_value() > 0:
-            return end_hex.get_value()
-        elif start_hex.get_x() == 0 and start_hex.get_y() == 0:
-            return end_hex.get_value() - player.get_lowest_from_reserve()
-        else:
-            return end_hex.get_value() - HexTile.get_distance(start_hex, end_hex)
+        cloned.player = self.player
+        cloned.player_to_move = self.player_to_move
+        cloned.game_started = self.game_started
+        cloned.not_moved_count = self.not_moved_count
+        cloned.placed = self.placed
+        cloned.valid_moves_calculated = self.valid_moves_calculated
 
-    def clone(self):
-        cloned_board = self.game_board.clone()
-        cloned_players = [player.clone() for player in self.players]
-        cloned_state = GameState(cloned_board, cloned_players, self.player_to_move)
-        cloned_state.set_not_moved_count(self.not_moved_count)
-        cloned_state.placed = self.placed
-        cloned_state.set_game_started(self.game_started)
-        return cloned_state
+        cloned.positions = self.positions.copy()
+        cloned.reserves = self.reserves.copy()
+
+        cloned.game_board = Dict.empty(key_type=int32, value_type=int32)
+        for k in self.game_board:
+            cloned.game_board[k] = self.game_board[k]
+
+        cloned.valid_moves = List.empty_list(int32)
+        for mv in self.valid_moves:
+            cloned.valid_moves.append(mv)
+
+        return cloned
 
     def encode(self) -> (torch.Tensor, torch.Tensor, torch.Tensor):
         grid_size = 9  # 5-hex radius translates to a 9x9 grid
@@ -329,22 +311,23 @@ class GameState:
         player1_points_tensor = torch.zeros((1,5), dtype=torch.float32)
         player2_points_tensor = torch.zeros((1,5), dtype=torch.float32)
 
-        for tile in self.game_board.get_all_tiles():
-            x, y = tile.x, tile.y
-            board_tensor[0, tile.get_value(), x + 4, y + 4] = 1.0
+        for tile in self.game_board.keys():
+            x, y = inverse_calc_cantor(tile)
+            board_tensor[0, self.game_board[tile], x + 4, y + 4] = 1.0
 
-            if tile.is_occupied:
-                if self.get_player_to_move() == self.get_player_on_hex(x, y):
+            if tile in self.positions:
+                index = self.positions.index(tile)
+                if self.player_to_move == index:
                     board_tensor[0, num_value_channels, x + 4, y + 4] = 1.0
                 else:
                     board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
 
-        reserve1 = self.players[self.player_to_move].get_reserve()
+        reserve1 = self.reserves[self.player_to_move]
 
         for i in range(len(reserve1)):
             player1_points_tensor[0,i] = reserve1[i]
 
-        reserve2 = self.players[self.player_to_move ^ 1].get_reserve()
+        reserve2 = self.reserves[self.player_to_move ^ 1]
         for i in range(len(reserve2)):
             player1_points_tensor[0,i] = reserve2[i]
         #
@@ -359,15 +342,15 @@ class GameState:
     def string_representation(self) -> str:
         rep = ''
 
-        for tile in self.game_board.get_all_tiles():
-            rep += str(tile.get_value())
+        for tile in self.game_board.keys():
+            rep += str(self.game_board[tile])
 
-        for player in self.players:
-            rep += str(player.get_pos())
-            for x in player.get_reserve():
+        for pos in self.positions:
+            rep += str(pos)
+
+        for reserve in self.reserves:
+            for x in reserve:
                 rep += str(x)
-
-
 
         rep += str(self.player_to_move)
 

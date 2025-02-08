@@ -8,11 +8,5 @@ class RandomAgent(Agent):
 
 
     def choose_move(self, game_state):
-        """
-        Selects a random move from the available moves in the game state.
-        If no moves are available, returns a very small value (equivalent to Integer.MIN_VALUE in Java).
-        """
         moves = game_state.get_moves()
-
-        # Choose a random move from the available moves
         return random.choice(moves)

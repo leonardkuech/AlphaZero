@@ -3,7 +3,7 @@ import logging
 import torch
 import torch.nn as nn
 
-from GameState import INDEX_TO_MOVE
+from Utils import INDEX_TO_MOVE
 
 logger = logging.getLogger(__name__)
 class GliderCNN(nn.Module):

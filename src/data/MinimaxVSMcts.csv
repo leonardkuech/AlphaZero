@@ -1,11 +1,4 @@
 Game,Winner,Turns
-0,MCTS,76
-1,MCTS,86
-2,MinimaxAgent,80
-3,MCTS,81
-4,MinimaxAgent,77
-5,MCTS,69
-6,MCTS,76
-7,MCTS,77
-8,MinimaxAgent,69
-9,MCTS,68
+0,MCTS,74
+1,MCTS,74
+2,MCTS,70

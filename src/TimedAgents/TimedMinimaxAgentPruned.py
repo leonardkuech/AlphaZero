@@ -9,9 +9,12 @@ from GameState import GameState
 def evaluate_game_state(game_state: GameState) -> float:
     player_score = game_state.get_score(game_state.player_to_move)
     opponent_score = game_state.get_score(game_state.player_to_move ^ 1)
+
     if player_score == opponent_score:
-        return 0.5
-    return player_score  / (player_score + opponent_score)
+        return 0.0
+
+    return (player_score - opponent_score) / (player_score + opponent_score)
+
 
 @njit(cache=True)
 def minimax_ab(game_state: GameState, depth: int, alpha: float, beta: float, maximizing: bool) -> (float, int):
@@ -19,22 +22,22 @@ def minimax_ab(game_state: GameState, depth: int, alpha: float, beta: float, max
         if maximizing:
             return evaluate_game_state(game_state), -1
         else:
-            return 1 - evaluate_game_state(game_state), -1
+            return  - evaluate_game_state(game_state), -1
 
     if game_state.check_game_over():
         winner = game_state.get_leader()
         if winner < 0:
-            return 0.5, -1
+            return 0.0, -1
         if winner == game_state.player_to_move:
             if maximizing:
-                return 1.0, -1
+                return float('inf'), -1
             else:
-                return 0.0, -1
+                return float('-inf'), -1
         else:
             if maximizing:
-                return 0.0, -1
+                return float('-inf'), -1
             else:
-                return 1.0, -1
+                return float('inf') -1
 
     if maximizing:
         best_eval = float('-inf')
@@ -54,6 +57,7 @@ def minimax_ab(game_state: GameState, depth: int, alpha: float, beta: float, max
             if beta <= alpha:
                 break
         return best_eval, best_move
+
     else:
 
         best_eval = float('inf')

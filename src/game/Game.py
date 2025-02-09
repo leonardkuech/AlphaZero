@@ -99,7 +99,7 @@ class Game:
     def init_ui(self):
         root = tkinter.Tk()
         root.resizable(True, True)
-        self.ui = HexGridUI(root, self.game_state, show_indexes=True)
+        self.ui = HexGridUI(root, self.game_state, show_indexes=False)
         self.has_ui = True
 
         return root

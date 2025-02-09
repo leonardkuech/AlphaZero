@@ -11,7 +11,7 @@ def evaluate_game_state(game_state: GameState) -> float:
     opponent_score = game_state.get_score(game_state.player_to_move ^ 1)
     if player_score == opponent_score:
         return 0.5
-    return (player_score - opponent_score) / (player_score + opponent_score)
+    return player_score  / (player_score + opponent_score)
 
 @njit(cache=True)
 def minimax_ab(game_state: GameState, depth: int, alpha: float, beta: float, maximizing: bool) -> (float, int):

@@ -2,7 +2,7 @@ import numpy as np
 import math
 from numba import njit
 
-EXPLORATION_CONSTANT = np.sqrt(2)
+EXPLORATION_CONSTANT = math.sqrt(2)
 
 
 @njit(cache=True)

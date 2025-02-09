@@ -9,7 +9,6 @@ from GameState import GameState
 from Node import Node
 from Utils import calculate_uct, calculate_inv_uct
 
-# Get the jitclass instance type for Node.
 NodeType = Node.class_type.instance_type
 
 # njitted simulation functions remain unchanged
@@ -43,7 +42,6 @@ def backpropagate(node: Node, node_set, result: float):
         temp_node.add_score(result)
 
 class TimedMCTSAgent(Agent):
-    # Removed SIMULATION_LIMIT in favor of time-based stopping.
     def __init__(self, name: str, player_id: int, time_limit: float):
         super().__init__(name)
         self.player_id = player_id
@@ -55,9 +53,6 @@ class TimedMCTSAgent(Agent):
     def choose_move(self, game_state: GameState):
         start_time = time.time()
 
-        # Create the root node.
-        # (Assuming your Node constructor accepts key and game_state,
-        #  adjust the parameters according to your Node definition.)
         root = Node(0, game_state)
         self.nodes[self.index] = root
         self.index += 1
@@ -80,7 +75,10 @@ class TimedMCTSAgent(Agent):
                 result = evaluate_game_state(promising_node.game_state, self.player_id)
                 backpropagate(promising_node, self.nodes, result)
 
-        return self.get_robust_move(root)
+        robust_move = self.get_robust_move(root)
+        self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
+        self.index = 0
+        return robust_move
 
     def _select_promising_node(self, node: Node) -> Node:
         while node.children:
@@ -96,9 +94,6 @@ class TimedMCTSAgent(Agent):
         for move in legal_moves:
             new_state = node.game_state.clone()
             new_state.apply_move(move)
-            # Create a new child node.
-            # Here we assume the Node constructor accepts parameters in the order:
-            # key, game_state, move, parent_key.
             child_node = Node(self.index, new_state, move, node.key)
             self.nodes[self.index] = child_node
             self.index += 1

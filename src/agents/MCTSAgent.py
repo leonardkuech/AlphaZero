@@ -41,7 +41,7 @@ def backpropagate(node : Node, node_set , result : float):
         temp_node.add_score(result)
 
 class MCTSAgent(Agent):
-    SIMULATION_LIMIT = 30000  # Number of simulations per move
+    SIMULATION_LIMIT = 10000  # Number of simulations per move
 
     def __init__(self, name: str, player_id: int):
         super().__init__(name)
@@ -56,6 +56,8 @@ class MCTSAgent(Agent):
         self.index += 1
 
         for _ in range(self.SIMULATION_LIMIT):
+            children = [self.nodes[child] for child in root.children]
+
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():
                 if promising_node.visit_count == 0:
@@ -71,7 +73,11 @@ class MCTSAgent(Agent):
             else:
                 result = evaluate_game_state(promising_node.game_state, self.player_id)
                 backpropagate(promising_node, self.nodes, result)
-        return self.get_robust_move(root)
+
+        robust_move = self.get_robust_move(root)
+        self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
+        self.index = 0
+        return robust_move
 
     def _select_promising_node(self, node : Node) -> Node:
         while node.children:

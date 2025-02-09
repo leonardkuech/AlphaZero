@@ -4,10 +4,11 @@ import pandas as pd
 from Game import Game
 from RandomAgent import RandomAgent
 from TimedMCTSAgent import TimedMCTSAgent
+from Utils import sum_reserve
 
 SIMULATIONS = 100
 def run():
-    columns = ["Game", "Winner", "Turns"]
+    columns = ["Game", "Winner", "Turns", "MCTSPoints", "RandomPoints"]
     games_df = pd.DataFrame(columns=columns)
     for i in range(SIMULATIONS):
         if i % 2 == 0:
@@ -19,9 +20,9 @@ def run():
             winner = game.game_state.get_leader()
 
             if winner == 0:
-                game_stats = [i ,"MCTS", game.turns]
+                game_stats = [i ,"MCTS", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
             else:
-                game_stats = [i ,"RandomPolicy", game.turns]
+                game_stats = [i ,"RandomPolicy", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
 
             games_df.loc[i] = game_stats
 
@@ -34,9 +35,9 @@ def run():
 
             winner = game.game_state.get_leader()
             if winner == 0:
-                game_stats = [i, "RandomPolicy", game.turns]
+                game_stats = [i, "RandomPolicy", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
             else:
-                game_stats = [i, "MCTS", game.turns]
+                game_stats = [i, "MCTS", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
 
             games_df.loc[i] = game_stats
 

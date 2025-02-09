@@ -4,17 +4,19 @@ from Agent import Agent
 from GameState import GameState
 
 
-@njit
-def evaluate_game_state(game_state: GameState) -> int:
+@njit(cache=True)
+def evaluate_game_state(game_state: GameState) -> float:
     player_score = game_state.get_score(game_state.player_to_move)
     opponent_score = game_state.get_score(game_state.player_to_move ^ 1)
-    return player_score - opponent_score
+    if player_score == opponent_score:
+        return 0.5
+    return (player_score - opponent_score) / (player_score + opponent_score)
 
 
-@njit
-def minimax(game_state: GameState, depth: int):
+@njit(cache=True)
+def minimax(game_state: GameState, depth: int) -> (int,int):
     if depth == 0:
-        return - evaluate_game_state(game_state), -1
+        return 1 - evaluate_game_state(game_state), -1
 
     if game_state.check_game_over():
         winner = game_state.get_leader()
@@ -23,7 +25,6 @@ def minimax(game_state: GameState, depth: int):
         if winner == game_state.player_to_move:
             return float('-inf'), -1
         else:
-            # losing
             return float('inf'), -1
 
     best_eval = float('-inf')
@@ -38,7 +39,7 @@ def minimax(game_state: GameState, depth: int):
             best_eval = move_value
             best_move = move
 
-    return -best_eval, best_move
+    return 1 - best_eval, best_move
 
 
 class MinMaxAgent(Agent):

@@ -5,14 +5,16 @@ import tkinter
 from Agent import Agent
 from HexGridUI import HexGridUI
 from GameState import GameState
+from Utils import sum_reserve
 
 logger = logging.getLogger(__name__)
 
 class Game:
     def __init__(self, game_state: GameState, agent1: Agent = None, agent2: Agent = None):
         self.turns : int = 2
+        self.points_history = []
         self.game_state : GameState = game_state
-        self.ui : HexGridUI | None= None
+        self.ui : HexGridUI | None = None
         self.agents : list[Agent|None] = [agent1, agent2]
         self.has_ui : bool = False
 
@@ -85,6 +87,8 @@ class Game:
                         break
             print(time.time() - begin)
             self.turns += 1
+            if self.turns % 2 == 0:
+                self.points_history.append(sum_reserve(self.game_state.reserves[0]) - sum_reserve(self.game_state.reserves[1]))
             if self.game_state.check_game_over():
                 self.game_over()
 

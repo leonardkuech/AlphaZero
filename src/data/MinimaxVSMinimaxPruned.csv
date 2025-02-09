@@ -1,0 +1,11 @@
+Game,Winner,Turns
+0,MCTS,97
+1,PrunedAgent,85
+2,MinimaxAgent,67
+3,MCTS,72
+4,MinimaxAgent,71
+5,PrunedAgent,100
+6,MinimaxAgent,78
+7,PrunedAgent,86
+8,MinimaxAgent,74
+9,MCTS,81

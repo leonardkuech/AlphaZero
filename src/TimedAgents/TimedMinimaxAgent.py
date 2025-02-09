@@ -7,37 +7,41 @@ from GameState import GameState
 
 
 @njit(cache=True)
-def evaluate_game_state(game_state: GameState) -> int:
+def evaluate_game_state(game_state: GameState) -> float:
     player_score = game_state.get_score(game_state.player_to_move)
     opponent_score = game_state.get_score(game_state.player_to_move ^ 1)
-    return player_score - opponent_score
+    if player_score == opponent_score:
+        return 0.5
+    return (player_score - opponent_score) / (player_score + opponent_score)
+
 
 @njit(cache=True)
-def minimax(game_state: GameState, depth: int):
+def minimax(game_state: GameState, depth: int) -> (int,int):
     if depth == 0:
-        # Always return a valid integer move.
-        return -evaluate_game_state(game_state), np.int32(-1)
+        return 1 - evaluate_game_state(game_state), -1
 
     if game_state.check_game_over():
         winner = game_state.get_leader()
         if winner < 0:
-            return 0.0, np.int32(-1)
+            return 0.0, -1
         if winner == game_state.player_to_move:
-            return float('-inf'), np.int32(-1)
+            return float('-inf'), -1
         else:
-            return float('inf'), np.int32(-1)
+            return float('inf'), -1
 
     best_eval = float('-inf')
-    best_move = np.int32(-1)
+    best_move = - 1
 
     for move in game_state.get_moves():
         simulated_game_state = game_state.clone()
         simulated_game_state.apply_move(move)
-        move_value, _ = minimax(simulated_game_state, depth - 1)
+
+        move_value, m = minimax(simulated_game_state, depth - 1)
         if move_value > best_eval:
             best_eval = move_value
-            best_move = move  # Assuming 'move' is already an int (or castable to np.int32)
-    return -best_eval, np.int32(best_move)
+            best_move = move
+
+    return 1 - best_eval, best_move
 
 def minimax_worker(game_state, depth, queue):
     result = minimax(game_state, depth)

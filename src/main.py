@@ -16,7 +16,6 @@ def start_game_logic(game, finished_event):
 
 
 def main():
-    random.seed(42)
     agent = MCTSAgent('mcts',1)
     #agent = MinMaxAgent('minimax', 2)
     game = Game.create_game_with_agent(agent)

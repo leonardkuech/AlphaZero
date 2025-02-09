@@ -15,7 +15,11 @@ class GreedyAgent(Agent):
 
     def get_greedy_move(self, game_state : GameState):
         moves = game_state.get_moves_without_passing()
-        highest_value =  -1
+
+        if game_state.game_board[game_state.player_to_move] == 0:
+            return -1
+
+        highest_value =  - 1
         best_move = -1
 
         for move in moves:

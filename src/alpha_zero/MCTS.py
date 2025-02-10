@@ -1,3 +1,4 @@
+import torch
 from numba import njit, types
 import numpy as np
 from numba.typed import Dict
@@ -12,11 +13,11 @@ NodeType = AZNode.class_type.instance_type
 
 @njit(cache=True)
 def uct(node : AZNode, exp: float, parent_visits : int) -> float:
-    return node.q + exp * node.p * np.sqrt(parent_visits) / (1 - node.visits)
+    return node.q + exp * node.p * np.sqrt(parent_visits) / (1 + node.visits)
 
 @njit(cache=True)
 def inv_uct(node : AZNode, exp: float, parent_visits: int) -> float:
-    return - node.q + exp * node.p * np.sqrt(parent_visits) / (1 - node.visits)
+    return - node.q + exp * node.p * np.sqrt(parent_visits) / (1 + node.visits)
 
 @njit(cache=True)
 def backpropagate(node : AZNode, node_set , score : float):
@@ -35,14 +36,11 @@ def evaluate_game_state(game_state: GameState, player_id: int) -> float:
     return 1.0 if winner == player_id else -1.0
 
 @njit(cache=True)
-def mask_policy(policy : np.ndarray, moves : list[int]) -> np.ndarray:
-    moves_index = np.zeros(61)
-    for move in moves:
-        moves_index[MOVE_TO_INDEX[move]] = 1
+def mask_policy(policy : np.ndarray, mask : np.ndarray) -> np.ndarray:
 
-    policy = policy * moves_index / np.sum(policy)
+    policy = (policy * mask )
+    policy /= np.sum(policy)
 
-    print("Policy sum: ", np.sum(policy))
     return policy
 
 class MCTS:
@@ -65,6 +63,13 @@ class MCTS:
         self.index += 1
 
         for _ in range(self.simulation_limit):
+            # action_prob = np.zeros(62)
+            #
+            # for child in root.children:
+            #     node = self.nodes[child]
+            #     action_prob[MOVE_TO_INDEX[node.move]] = node.q
+            #
+            # print(action_prob)
 
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():
@@ -78,13 +83,14 @@ class MCTS:
                 backpropagate(promising_node, self.nodes, reward)
 
 
-        self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
-        self.index = 0
-
-        action_prob = np.zeros(61)
+        action_prob = np.zeros(62)
 
         for child in root.children:
-            action_prob[MOVE_TO_INDEX[child.move]] = child.q
+            node = self.nodes[child]
+            action_prob[MOVE_TO_INDEX[node.move]] = node.visits / root.visits
+
+        self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
+        self.index = 0
 
         return action_prob
 
@@ -98,17 +104,27 @@ class MCTS:
 
     def _expand_node(self, node : AZNode) -> float:
         board, player1, player2 = node.game_state.encode()
-        policy, value = self.nnet.predict(board, player1, player2)
+        policy, value = self.nnet.predict(torch.tensor(board, dtype=torch.float32),
+                                          torch.tensor(player1, dtype=torch.float32),
+                                          torch.tensor(player2, dtype=torch.float32))
 
         moves = node.game_state.get_moves()
 
-        policy = mask_policy(policy, moves)
+        mask = np.zeros(62)
+
+        for move in moves:
+            mask[MOVE_TO_INDEX[move]] = 1
+
+        policy = policy.numpy()
+        value = value.item()
+
+        policy = mask_policy(policy, mask)
 
         for move in moves:
             new_state = node.game_state.clone()
             new_state.apply_move(move)
 
-            child_node = AZNode(self.index, new_state, move, node.key, policy[MOVE_TO_INDEX[move]])
+            child_node = AZNode(self.index, new_state, move, node.key, policy[0, MOVE_TO_INDEX[move]].item())
             self.nodes[self.index] = child_node
             self.index +=1
 

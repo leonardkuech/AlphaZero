@@ -1,6 +1,7 @@
 import numpy as np
 import math
-from numba import njit
+from numba import njit, types
+from numba.typed import Dict
 
 EXPLORATION_CONSTANT = math.sqrt(2)
 
@@ -48,7 +49,7 @@ def in_bounds(x: int, y: int, z: int) -> bool:
 
 
 def map_move_to_index():
-    mapping = {}
+    mapping =  {}
     count = 0
 
     n = 4
@@ -61,7 +62,7 @@ def map_move_to_index():
                 mapping[calc_cantor(i, j)] = count
                 count += 1
 
-    mapping[float('-inf')] = count
+    mapping[-1] = count
 
     return mapping
 

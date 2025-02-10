@@ -6,7 +6,7 @@ from TimedMinimaxAgent import TimedMinimaxAgent
 from TimedMCTSAgent import TimedMCTSAgent
 from MCTSAgent import MCTSAgent
 
-SIMULATIONS = 3
+SIMULATIONS=500
 def run():
     columns = ["Game", "Winner", "Turns"]
     games_df = pd.DataFrame(columns=columns)

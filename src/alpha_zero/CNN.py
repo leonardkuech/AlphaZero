@@ -77,7 +77,7 @@ class GliderCNN(nn.Module):
         #Todo cache
 
     def trainCNN(self, trainingExamples):
-        # Create a new copy of the model (self) to avoid overwriting
+
         updated_nnet = self.__class__()  # Assumes your model class can be instantiated without arguments
         updated_nnet.load_state_dict(self.state_dict())  # Copy model parameters
         updated_nnet.to(self.device)  # Move the new model to the correct device
@@ -90,6 +90,12 @@ class GliderCNN(nn.Module):
 
         # Unpack the inputs tuple for better clarity
         board_tensors, player1_tensors, player2_tensors = zip(*inputs)
+
+        board_tensors = torch.tensor(board_tensors)
+        print(board_tensors.shape)
+        print(board_tensors)
+        player1_tensors = torch.tensor(player1_tensors)
+        player2_tensors = torch.tensor(player2_tensors)
 
         board_tensors = torch.cat(board_tensors).to(self.device)
         player1_tensors = torch.cat(player1_tensors).to(self.device)

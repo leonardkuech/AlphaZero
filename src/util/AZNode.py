@@ -14,8 +14,9 @@ spec = [
     ('move', int32),
     ('parent', int64),
     ('children', types.ListType(int64)),  # We will assign a typed.List later.
-    ('visit_count', int32),
-    ('score', float64),
+    ('visits', int32),
+    ('q', float64),
+    ('p', float64),
 ]
 
 @jitclass(spec)
@@ -34,7 +35,7 @@ class AZNode(object):
         self.children.append(child)
 
     def update_node(self, score):
-        self.q = (self.visits * self.q + score) / self.visits
+        self.q = (self.visits * self.q + score) / (self.visits + 1)
         self.visits += 1
 
     def get_random_child_node(self) -> int:

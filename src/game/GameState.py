@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 
 from Utils import calc_cantor, sum_reserve, distance, inverse_calc_cantor, in_bounds, sum_board_values
@@ -300,16 +299,16 @@ class GameState:
 
         return cloned
 
-    def encode(self) -> (torch.Tensor, torch.Tensor, torch.Tensor):
+    def encode(self) -> (np.array, np.array, np.array):
         grid_size = 9  # 5-hex radius translates to a 9x9 grid
         num_value_channels = 6  # Possible tile values: 0-5
         num_player_channels = 2  # Two players
         num_channels = num_value_channels + num_player_channels
 
         # Initialize a tensor with zeros
-        board_tensor = torch.zeros((1, num_channels, grid_size, grid_size), dtype=torch.float32)
-        player1_points_tensor = torch.zeros((1,5), dtype=torch.float32)
-        player2_points_tensor = torch.zeros((1,5), dtype=torch.float32)
+        board_tensor = np.zeros((1, num_channels, grid_size, grid_size), dtype=np.float32)
+        player1_points_tensor = np.zeros((1,5), dtype=np.float32)
+        player2_points_tensor = np.zeros((1,5), dtype=np.float32)
 
         for tile in self.game_board.keys():
             x, y = inverse_calc_cantor(tile)
@@ -339,6 +338,7 @@ class GameState:
         #     plt.colorbar()
         #     plt.show()
 
+        print(board_tensor.shape)
         return board_tensor, player1_points_tensor, player2_points_tensor
 
     def string_representation(self) -> str:

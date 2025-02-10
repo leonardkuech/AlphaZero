@@ -58,16 +58,14 @@ class Trainer:
         while True:
             prob = mcts.get_action_probabilities(game)
             #logger.info(f'{prob}')
+            prob /= np.sum(prob)
             train_examples.append([game.encode(), prob.reshape(1,62), None])
-            prob_np = prob.detach().cpu().numpy().astype(np.float64)
-            prob_np /= np.sum(prob_np)
-
 
             valid = false
             move = None
 
             while not valid:
-                index = np.random.choice(len(prob), p=prob_np)
+                index = np.random.choice(len(prob), p=prob)
                 move = INDEX_TO_MOVE[index]
 
                 valid = game.apply_move(move)

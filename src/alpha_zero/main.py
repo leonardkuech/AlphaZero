@@ -17,10 +17,11 @@ def main():
     log.info('Starting Alpha Zero')
 
     # cnn_tests.cnn_loss_tests()
-    nnet = torch.load('../models/sugar_gliders_nnet1738687856.480237.pth')
+
+    nnet = GliderCNN()
 
     trainer = Trainer(nnet)
-    trainer.learn(40,30)
+    trainer.learn(40,1)
 
 
 

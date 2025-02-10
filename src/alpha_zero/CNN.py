@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -78,9 +79,9 @@ class GliderCNN(nn.Module):
 
     def trainCNN(self, trainingExamples):
 
-        updated_nnet = self.__class__()  # Assumes your model class can be instantiated without arguments
-        updated_nnet.load_state_dict(self.state_dict())  # Copy model parameters
-        updated_nnet.to(self.device)  # Move the new model to the correct device
+        updated_nnet = self.__class__()
+        updated_nnet.load_state_dict(self.state_dict())
+        updated_nnet.to(self.device)
         updated_nnet = torch.compile(updated_nnet)
 
         updated_nnet.train()
@@ -91,17 +92,19 @@ class GliderCNN(nn.Module):
         # Unpack the inputs tuple for better clarity
         board_tensors, player1_tensors, player2_tensors = zip(*inputs)
 
-        board_tensors = torch.tensor(board_tensors)
-        print(board_tensors.shape)
-        print(board_tensors)
-        player1_tensors = torch.tensor(player1_tensors)
-        player2_tensors = torch.tensor(player2_tensors)
+        board_tensors = np.squeeze(board_tensors, axis=1)
+        player1_tensors = np.squeeze(player1_tensors, axis=1)
+        player2_tensors = np.squeeze(player2_tensors, axis=1)
 
-        board_tensors = torch.cat(board_tensors).to(self.device)
-        player1_tensors = torch.cat(player1_tensors).to(self.device)
-        player2_tensors = torch.cat(player2_tensors).to(self.device)
-        policy_targets = torch.cat(policy_targets).to(self.device)
-        value_targets = torch.cat(value_targets).to(self.device)
+        policy_targets = np.squeeze(policy_targets, axis=1)
+        value_targets = np.squeeze(value_targets, axis=1)
+
+        board_tensors = torch.tensor(board_tensors).to(self.device)
+        player1_tensors = torch.tensor(player1_tensors).to(self.device)
+        player2_tensors = torch.tensor(player2_tensors).to(self.device)
+
+        policy_targets = torch.tensor(policy_targets).to(self.device)
+        value_targets = torch.tensor(value_targets).to(self.device)
 
         # Create TensorDataset
         dataset = torch.utils.data.TensorDataset(
@@ -122,14 +125,13 @@ class GliderCNN(nn.Module):
             )
 
             updated_nnet.optimizer.zero_grad()
-            # Forward pass
             predicted_policy, predicted_value = updated_nnet.forward(board, player1, player2)
-            # Compute loss
+
             loss = updated_nnet.loss(predicted_policy, predicted_value, policy, value)
             loss_total += loss.item()
             acc =  (torch.argmax(policy, dim=1) == torch.argmax(predicted_policy, dim=1)).sum() / len(policy)
             acc_total += acc
-            # Backpropagation
+
             loss.backward()
             updated_nnet.optimizer.step()
 

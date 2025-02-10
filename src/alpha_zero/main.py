@@ -21,7 +21,7 @@ def main():
     nnet = GliderCNN()
 
     trainer = Trainer(nnet)
-    trainer.learn(40,1)
+    trainer.learn(40,100)
 
 
 

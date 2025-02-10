@@ -312,7 +312,7 @@ class GameState:
 
         for tile in self.game_board.keys():
             x, y = inverse_calc_cantor(tile)
-            board_tensor[0, self.game_board[tile], x + 4, y + 4] = 1.0
+            board_tensor[0, self.game_board[tile].item(), x + 4, y + 4] = 1.0
 
         for index, pos in enumerate(self.positions):
 
@@ -338,7 +338,6 @@ class GameState:
         #     plt.colorbar()
         #     plt.show()
 
-        print(board_tensor.shape)
         return board_tensor, player1_points_tensor, player2_points_tensor
 
     def string_representation(self) -> str:

@@ -6,7 +6,7 @@ from sympy import false
 
 from CNN import GliderCNN
 from Game import Game
-from Utils import INDEX_TO_MOVE
+from Utils import INDEX_TO_MOVE, sum_reserve
 from MCTS import MCTS
 from NNetAgent import NNetAgent
 import time
@@ -32,12 +32,8 @@ class Trainer:
                 logger.info(f'Game #{j} done')
 
             logger.info(f'Finished self play')
+            logger.info(f'Currently {len(self.training_examples)} Samples ')
 
-            count = 0
-            for sample in self.training_examples:
-                if sample[1][0, 61] == 0:
-                    count += 1
-            logger.info(f'Sample {count} from {len(self.training_examples)} games ')
             new_nnet = self.nnet.trainCNN(self.training_examples)
             new_nnet = new_nnet.trainCNN(self.training_examples)
             percentage_won = self.pit(self.nnet, new_nnet)
@@ -105,9 +101,9 @@ class Trainer:
             leader = game.game_state.get_leader()
             if leader < 0:
                 games_won += 0.5
-                logger.info(f'Draw | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')
+                logger.info(f'Draw | {sum_reserve(game.game_state.reserves[0])} Points (Player 1) against {sum_reserve(game.game_state.reserves[1])} points (Player 2) in {game.turns}')
             else:
-                logger.info(f'Player {leader} won game #{i} | {game.game_state.check_bank()[0]} Points (Player 1) against {game.game_state.check_bank()[1]} points (Player 2)')
+                logger.info(f'Player {leader} won game #{i} | {sum_reserve(game.game_state.reserves[0])} Points (Player 1) against {sum_reserve(game.game_state.reserves[1])} points (Player 2) {game.turns}')
 
             if leader == player_id_new_agent:
                 games_won += 1

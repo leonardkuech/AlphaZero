@@ -56,7 +56,6 @@ class MCTSAgent(Agent):
         self.index += 1
 
         for _ in range(self.SIMULATION_LIMIT):
-            children = [self.nodes[child] for child in root.children]
 
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():

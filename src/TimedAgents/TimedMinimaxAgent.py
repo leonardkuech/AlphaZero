@@ -26,7 +26,7 @@ def minimax(game_state: GameState, depth: int) -> (int,int):
     if game_state.check_game_over():
         winner = game_state.get_leader()
         if winner < 0:
-            return 0.0, -1
+            return 0.5, -1
         if winner == game_state.player_to_move:
             return float('-inf'), -1
         else:

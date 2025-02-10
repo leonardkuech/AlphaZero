@@ -28,7 +28,7 @@ def run():
 
         else:
             random_agent = RandomAgent("RandomAgent")
-            mcts_agent = TimedMCTSAgent("MCTSAgent", 1)
+            mcts_agent = TimedMCTSAgent("MCTSAgent", 1, 1.0)
             game = Game.create_agent_game(random_agent, mcts_agent)
             game.init()
             game.start()

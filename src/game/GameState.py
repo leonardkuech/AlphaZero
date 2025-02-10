@@ -315,21 +315,23 @@ class GameState:
             x, y = inverse_calc_cantor(tile)
             board_tensor[0, self.game_board[tile], x + 4, y + 4] = 1.0
 
-            if tile in self.positions:
-                index = self.positions.index(tile)
-                if self.player_to_move == index:
-                    board_tensor[0, num_value_channels, x + 4, y + 4] = 1.0
-                else:
-                    board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
+        for index, pos in enumerate(self.positions):
+
+            x, y = inverse_calc_cantor(pos)
+            if self.player_to_move == index:
+                board_tensor[0, num_value_channels, x + 4, y + 4] = 1.0
+            else:
+                board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
 
         reserve1 = self.reserves[self.player_to_move]
 
         for i in range(len(reserve1)):
-            player1_points_tensor[0,i] = reserve1[i]
+            player1_points_tensor[0,i] = reserve1[i].item()
 
         reserve2 = self.reserves[self.player_to_move ^ 1]
+
         for i in range(len(reserve2)):
-            player1_points_tensor[0,i] = reserve2[i]
+            player1_points_tensor[0,i] = reserve2[i].item()
         #
         # for i in range(board_tensor.shape[0]):
         #     plt.imshow(board_tensor[i].numpy(), cmap='gray')

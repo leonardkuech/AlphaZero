@@ -80,7 +80,6 @@ class Trainer:
                     if winner < 0:
                         sample[2] = torch.tensor([-1])
                     else:
-                        #TODO ist das richtig?
                         sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
                 break
 

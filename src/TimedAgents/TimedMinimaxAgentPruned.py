@@ -37,7 +37,7 @@ def minimax_ab(game_state: GameState, depth: int, alpha: float, beta: float, max
             if maximizing:
                 return float('-inf'), -1
             else:
-                return float('inf') -1
+                return float('inf'), -1
 
     if maximizing:
         best_eval = float('-inf')

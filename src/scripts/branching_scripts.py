@@ -44,7 +44,7 @@ def sim_branching():
 
 def calc_avg():
 
-    branch_df = pd.read_csv('src/data/branching.csv')
+    branch_df = pd.read_csv('../data/branching.csv')
 
     averages = branch_df.mean()
 
@@ -52,7 +52,7 @@ def calc_avg():
 
 def cut_first_entries():
 
-    branch_df = pd.read_csv('src/data/average_branching.csv')
+    branch_df = pd.read_csv('../data/average_branching.csv')
 
     entries_df = branch_df.head(100)
 

@@ -5,6 +5,7 @@ import GreedyVSMCTS
 import GreedyVSMinimax
 import MctsVsMctsHardPlayout
 import MctsVsMinimaxPruned
+import MinimaxPrunedVsMinimaxPrunedAZEval
 import MinimaxVsMcts
 import MinimaxVsMinimaxPruned
 import RandomVSMCTS
@@ -25,13 +26,15 @@ def run():
     logger.info("GreedyVsMinimax ----> Done")
     #GreedyVSMCTS.run()
     logger.info("GreedyVsMcts ----> Done")
-    #MinimaxVsMinimaxPruned.run()
+    MinimaxVsMinimaxPruned.run()
     logger.info("MinimaxVsMinimaxPruned ----> Done")
     #MctsVsMctsHardPlayout.run()
     logger.info("MctsVsMctsHardPlay ----> Done")
     MinimaxVsMcts.run()
     logger.info("MinimaxVsMcts ----> Done")
     MctsVsMinimaxPruned.run()
+    logger.info("MctsVsMinimaxPruned ----> Done")
+    MinimaxPrunedVsMinimaxPrunedAZEval.run()
     logger.info("MctsVsMinimaxPruned ----> Done")
 
 

@@ -82,7 +82,8 @@ def minimax_worker(game_state, depth, queue):
 class TimedMinimaxAgentPruned(Agent):
     def __init__(self, name: str, time_limit: float):
         super().__init__(name)
-        self.time_limit = time_limit  # Allowed time in seconds.
+        self.time_limit = time_limit
+        self.depths = []
 
     def choose_move(self, game_state: GameState) -> int:
         start_time = time.time()
@@ -122,4 +123,5 @@ class TimedMinimaxAgentPruned(Agent):
 
             depth += 1
 
+        self.depths.append(depth)
         return int(last_best_move)

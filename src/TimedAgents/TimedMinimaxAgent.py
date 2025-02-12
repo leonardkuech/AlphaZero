@@ -2,6 +2,8 @@ import time
 import multiprocessing
 import numpy as np
 from numba import njit
+from scrapy.spidermiddlewares import depth
+
 from Agent import Agent
 from GameState import GameState
 
@@ -54,6 +56,7 @@ class TimedMinimaxAgent(Agent):
     def __init__(self, name: str, time_limit: float):
         super().__init__(name)
         self.time_limit = time_limit
+        self.depths = []
 
     def choose_move(self, game_state: GameState) -> int:
         start_time = time.time()
@@ -93,5 +96,7 @@ class TimedMinimaxAgent(Agent):
                 break
 
             depth += 1
+
+        self.depth.append(depth)
 
         return int(last_best_move)

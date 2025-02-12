@@ -9,4 +9,5 @@ class RandomAgent(Agent):
 
     def choose_move(self, game_state):
         moves = game_state.get_moves()
+        amount_moves = len(moves)
         return random.choice(moves)

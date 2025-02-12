@@ -7,7 +7,7 @@ from Utils import sum_reserve
 
 SIMULATIONS = 100
 def run():
-    columns = ["Game", "Winner", "Turns", "VanillaPoints", "PrunedPoints"]
+    columns = ["Game", "Winner", "Turns", "VanillaPoints", "PrunedPoints", "avgDepth", "avgDepthPruned"]
     games_df = pd.DataFrame(columns=columns)
 
     for i in range(SIMULATIONS):
@@ -20,9 +20,9 @@ def run():
             winner = game.game_state.get_leader()
 
             if winner == 0:
-                game_stats = [i ,"MinimaxAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
+                game_stats = [i ,"MinimaxAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1]), sum(minimax_agent.depths) / len(minimax_agent.depths), sum(pruned_agent.depths) / len(pruned_agent.depths)]
             else:
-                game_stats = [i ,"PrunedAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
+                game_stats = [i ,"PrunedAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1]), sum(minimax_agent.depths) / len(minimax_agent.depths), sum(pruned_agent.depths) / len(pruned_agent.depths)]
 
             games_df.loc[i] = game_stats
 
@@ -36,9 +36,9 @@ def run():
             winner = game.game_state.get_leader()
 
             if winner == 0:
-                game_stats = [i, "PrunedAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
+                game_stats = [i, "PrunedAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0]), sum(minimax_agent.depths) / len(minimax_agent.depths), sum(pruned_agent.depths) / len(pruned_agent.depths)]
             else:
-                game_stats = [i, "MinimaxAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
+                game_stats = [i, "MinimaxAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0]), sum(minimax_agent.depths) / len(minimax_agent.depths), sum(pruned_agent.depths) / len(pruned_agent.depths)]
 
             games_df.loc[i] = game_stats
 

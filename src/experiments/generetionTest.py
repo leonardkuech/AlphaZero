@@ -1,9 +1,11 @@
+import pandas as pd
 import torch
 
 from NNetAgent import NNetAgent
 from Game import Game
 import logging
 from CNN import *
+from Utils import sum_reserve
 
 logger = logging.getLogger(__name__)
 
@@ -11,34 +13,51 @@ def main():
     games_won = 0
     player_id_new_agent = 0
 
+    columns = ["Game", "Winner", "Turns", "AZPoints", "RandomPoints"]
+    games_df = pd.DataFrame(columns=columns)
+
     for i in range(1000):
-        old_nnet = torch.load("../models/sugar_gliders_nnet1738568988.3762062.pth")
-        new_nnet = torch.load("../models/sugar_gliders_nnet1738687856.480237.pth")
+        old_nnet = torch.load("../models/sugar_gliders_nnet1739221639.690707.pth")
+        new_nnet = torch.load("../models/sugar_gliders_nnet1739256673.5185611.pth")
         agent_old = NNetAgent(old_nnet, "OldAgent")
         agent_new = NNetAgent(new_nnet, "NewAgent")
 
         if i % 2 == 0:
-            game = Game.create_agent_game(agent_old, agent_new)
-            player_id_new_agent = 1
+            new_policy_agent = NNetAgent(new_nnet, "AZ")
+            old_policy_agent = NNetAgent(old_nnet, "AZ")
+            game = Game.create_agent_game(old_policy_agent, new_policy_agent)
+            game.init()
+            game.start()
+            winner = game.game_state.get_leader()
+
+            if winner == 0:
+                game_stats = [i, "OldAZPolicy", game.turns, sum_reserve(game.game_state.reserves[0]),
+                              sum_reserve(game.game_state.reserves[1])]
+            else:
+                game_stats = [i, "NewAZPolicy", game.turns, sum_reserve(game.game_state.reserves[0]),
+                              sum_reserve(game.game_state.reserves[1])]
+
+            games_df.loc[i] = game_stats
+
         else:
-            game = Game.create_agent_game(agent_new, agent_old)
-            player_id_new_agent = 0
+            new_policy_agent = NNetAgent(new_nnet, "AZ")
+            old_policy_agent = NNetAgent(old_nnet, "AZ")
+            game = Game.create_agent_game(new_policy_agent, old_policy_agent)
+            game.init()
+            game.start()
 
-        game.init()
-        game.start()
-        leader = game.game_state.get_leader()
+            winner = game.game_state.get_leader()
+            if winner == 0:
+                game_stats = [i, "NewAZPolicy", game.turns, sum_reserve(game.game_state.reserves[1]),
+                              sum_reserve(game.game_state.reserves[0])]
+            else:
+                game_stats = [i, "OldAZPolicy", game.turns, sum_reserve(game.game_state.reserves[1]),
+                              sum_reserve(game.game_state.reserves[0])]
 
-        if leader < 0:
-            print('Draw')
-        else:
-            print(f'Winner: {leader} Name: {game.game_state.players[leader].get_name()}')
+            games_df.loc[i] = game_stats
 
-        if leader == player_id_new_agent:
-            print('+')
-            games_won += 1
+    games_df.to_csv("../data/Gen1VsGen7.csv", index=False)
 
-    logger.info(f'Played {100} games and won {games_won}')
-    print(f'Played {1000} games and won {games_won}')
 
 
 if __name__ == '__main__':

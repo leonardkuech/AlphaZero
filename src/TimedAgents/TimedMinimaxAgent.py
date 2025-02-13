@@ -2,7 +2,6 @@ import time
 import multiprocessing
 import numpy as np
 from numba import njit
-from scrapy.spidermiddlewares import depth
 
 from Agent import Agent
 from GameState import GameState
@@ -97,6 +96,6 @@ class TimedMinimaxAgent(Agent):
 
             depth += 1
 
-        self.depth.append(depth)
+        self.depths.append(depth)
 
         return int(last_best_move)

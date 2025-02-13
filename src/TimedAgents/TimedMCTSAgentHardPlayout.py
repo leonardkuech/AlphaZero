@@ -50,6 +50,7 @@ class TimedMCTSAgentHardPlayout(Agent):
 
         self.index = 0
         self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
+        self.simulations = []
 
     def choose_move(self, game_state: GameState):
         start_time = time.time()
@@ -57,9 +58,11 @@ class TimedMCTSAgentHardPlayout(Agent):
         root = Node(0, game_state)
         self.nodes[self.index] = root
         self.index += 1
+        sim = 0
 
         # Instead of a fixed iteration loop, run until time is up.
         while time.time() - start_time < self.time_limit:
+            sim += 1
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():
                 if promising_node.visit_count == 0:
@@ -79,6 +82,8 @@ class TimedMCTSAgentHardPlayout(Agent):
         robust_move = self.get_robust_move(root)
         self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
         self.index = 0
+        self.simulations.append(sim)
+
         return robust_move
 
     def _select_promising_node(self, node: Node) -> Node:

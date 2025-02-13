@@ -12,8 +12,8 @@ def run():
 
     for i in range(SIMULATIONS):
         if i % 2 == 0:
-            minimax_agent = TimedMinimaxAgent("MinimaxAgent",  2.0)
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
+            minimax_agent = TimedMinimaxAgent("MinimaxAgent",  1.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
             game = Game.create_agent_game(minimax_agent, pruned_agent)
             game.init()
             game.start()
@@ -27,8 +27,8 @@ def run():
             games_df.loc[i] = game_stats
 
         else:
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
-            minimax_agent = TimedMinimaxAgent("MinimaxAgent",  2.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
+            minimax_agent = TimedMinimaxAgent("MinimaxAgent",  1.0)
             game = Game.create_agent_game(pruned_agent, minimax_agent)
             game.init()
             game.start()
@@ -42,7 +42,7 @@ def run():
 
             games_df.loc[i] = game_stats
 
-    games_df.to_csv("../data/MinimaxVSMinimaxPruned2Sec.csv", index=False)
+    games_df.to_csv("../data/MinimaxVSMinimaxPruned1Sec.csv", index=False)
 
 if __name__ == '__main__':
     run()

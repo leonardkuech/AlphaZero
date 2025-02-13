@@ -44,6 +44,7 @@ def backpropagate(node: Node, node_set, result: float):
 class TimedMCTSAgent(Agent):
     def __init__(self, name: str, player_id: int, time_limit: float):
         super().__init__(name)
+        self.simulations = []
         self.player_id = player_id
         self.time_limit = time_limit  # Time allowed for move computation (in seconds)
         self.index = 0
@@ -52,6 +53,7 @@ class TimedMCTSAgent(Agent):
 
     def choose_move(self, game_state: GameState):
         start_time = time.time()
+        sim = 0
 
         root = Node(0, game_state)
         self.nodes[self.index] = root
@@ -59,6 +61,7 @@ class TimedMCTSAgent(Agent):
 
         # Instead of a fixed iteration loop, run until time is up.
         while time.time() - start_time < self.time_limit:
+            sim += 1
             promising_node = self._select_promising_node(root)
             if not promising_node.game_state.check_game_over():
                 if promising_node.visit_count == 0:
@@ -78,6 +81,8 @@ class TimedMCTSAgent(Agent):
         robust_move = self.get_robust_move(root)
         self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
         self.index = 0
+        self.simulations.append(sim)
+
         return robust_move
 
     def _select_promising_node(self, node: Node) -> Node:

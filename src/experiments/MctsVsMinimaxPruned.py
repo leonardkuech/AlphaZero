@@ -14,8 +14,8 @@ def run():
 
     for i in range(SIMULATIONS):
         if i % 2 == 0:
-            mcts_agent = TimedMCTSAgent("MCTSAgent",  0, 1.0)
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
+            mcts_agent = TimedMCTSAgent("MCTSAgent",  0, 2.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
             game = Game.create_agent_game(mcts_agent, pruned_agent)
             game.init()
             game.start()
@@ -30,8 +30,8 @@ def run():
             point_history.append(np.array(game.points_history))
 
         else:
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
-            mcts_agent = TimedMCTSAgent("MCTSAgent",  1, 1.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
+            mcts_agent = TimedMCTSAgent("MCTSAgent",  1, 2.0)
             game = Game.create_agent_game(pruned_agent, mcts_agent)
             game.init()
             game.start()
@@ -48,9 +48,9 @@ def run():
             point_difference = np.array(game.points_history)
             point_history.append(-np.array(game.points_history))
 
-    games_df.to_csv("../data/MctsVsMinimaxPruned.csv", index=False)
+    games_df.to_csv("../data/MctsVsMinimax2SecPruned.csv", index=False)
     point_history_df = pd.DataFrame(point_history)
-    point_history_df.to_csv("../data/MctsVsMinimaxPointDifferenceHistory.csv", index=False, header=False)
+    point_history_df.to_csv("../data/MctsVsMinimax2SecPointDifferenceHistory.csv", index=False, header=False)
 
 if __name__ == '__main__':
     run()

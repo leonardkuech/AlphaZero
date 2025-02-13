@@ -15,8 +15,8 @@ def run():
 
     for i in range(SIMULATIONS):
         if i % 2 == 0:
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
-            pruned_agent_az = TimedMinimaxAgentPrunedAZ("TimedMinimaxAgentPruned",nnet, 2.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
+            pruned_agent_az = TimedMinimaxAgentPrunedAZ("TimedMinimaxAgentPruned",nnet, 1.0)
             game = Game.create_agent_game( pruned_agent,  pruned_agent_az)
             game.init()
             game.start()
@@ -30,8 +30,8 @@ def run():
             games_df.loc[i] = game_stats
 
         else:
-            pruned_agent_az = TimedMinimaxAgentPrunedAZ("TimedMinimaxAgentPruned", nnet, 2.0)
-            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  2.0)
+            pruned_agent_az = TimedMinimaxAgentPrunedAZ("TimedMinimaxAgentPruned", nnet, 1.0)
+            pruned_agent = TimedMinimaxAgentPruned("TimedMinimaxAgentPruned",  1.0)
             game = Game.create_agent_game(pruned_agent_az, pruned_agent)
             game.init()
             game.start()

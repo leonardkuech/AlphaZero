@@ -30,7 +30,7 @@ def run():
     logger.info("MinimaxVsMinimaxPruned ----> Done")
     #MctsVsMctsHardPlayout.run()
     logger.info("MctsVsMctsHardPlay ----> Done")
-    MinimaxVsMcts.run()
+    #MinimaxVsMcts.run()
     logger.info("MinimaxVsMcts ----> Done")
     MctsVsMinimaxPruned.run()
     logger.info("MctsVsMinimaxPruned ----> Done")

@@ -7,7 +7,7 @@ from Utils import sum_reserve
 
 SIMULATIONS = 100
 def run():
-    columns = ["Game", "Winner", "Turns", "MCTSPoints", "MCTSHardPoints"]
+    columns = ["Game", "Winner", "Turns", "MCTSPoints", "MCTSHardPoints", "AvgSimulations", "AvgSimulationsHard"]
     games_df = pd.DataFrame(columns=columns)
     for i in range(SIMULATIONS):
         if i % 2 == 0:
@@ -19,9 +19,9 @@ def run():
             winner = game.game_state.get_leader()
 
             if winner == 0:
-                game_stats = [i ,"SoftPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
+                game_stats = [i ,"SoftPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1]), sum(mcts_agent.simulations) / len(mcts_agent.simulations), sum(hard_agent.simulations) / len(hard_agent.simulations)]
             else:
-                game_stats = [i ,"HardPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1])]
+                game_stats = [i ,"HardPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[0]), sum_reserve(game.game_state.reserves[1]),  sum(mcts_agent.simulations) / len(mcts_agent.simulations), sum(hard_agent.simulations) / len(hard_agent.simulations)]
 
             games_df.loc[i] = game_stats
 
@@ -35,9 +35,9 @@ def run():
             winner = game.game_state.get_leader()
 
             if winner == 0:
-                game_stats = [i, "HardPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
+                game_stats = [i, "HardPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0]),  sum(mcts_agent.simulations) / len(mcts_agent.simulations), sum(hard_agent.simulations) / len(hard_agent.simulations)]
             else:
-                game_stats = [i, "SoftPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0])]
+                game_stats = [i, "SoftPlayoutAgent", game.turns, sum_reserve(game.game_state.reserves[1]), sum_reserve(game.game_state.reserves[0]),  sum(mcts_agent.simulations) / len(mcts_agent.simulations), sum(hard_agent.simulations) / len(hard_agent.simulations)]
 
             games_df.loc[i] = game_stats
 

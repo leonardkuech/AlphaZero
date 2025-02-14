@@ -14,7 +14,7 @@ SIMULATIONS = 500
 def run():
     columns = ["Game", "Winner", "Turns", "AZPoints", "RandomPoints"]
     games_df = pd.DataFrame(columns=columns)
-    nnet = torch.load('../models/sugar_gliders_nnet1739256673.5185611.pth')
+    nnet = torch.load('../models/sugar_gliders_nnet1739457037.9798021.pth')
     for i in range(SIMULATIONS):
         if i % 2 == 0:
             policy_agent = NNetAgent(nnet, "AZ")

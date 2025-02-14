@@ -75,7 +75,6 @@ class GliderCNN(nn.Module):
             player1 = player1.to(self.device)
             player2 = player2.to(self.device)
             return self.forward(board, player1, player2)
-        #Todo cache
 
     def trainCNN(self, trainingExamples):
 

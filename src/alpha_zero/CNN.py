@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import torch
 import torch.nn as nn
+from schedulefree import AdamWScheduleFree
 
 from Utils import INDEX_TO_MOVE
 
@@ -19,46 +20,62 @@ class GliderCNN(nn.Module):
         self.device = torch.device('cpu')
 
         # CNN for processing the board state
-        self.cnn = nn.Sequential(
+        self.cnn1 = nn.Sequential(
             nn.Conv2d(num_channels, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Flatten()
+            nn.BatchNorm2d(32),
+            nn.SiLU(),
         )
 
+        self.blocks = nn.ModuleList()
+
+        for _ in range(7):
+            self.blocks.append(
+                nn.Sequential(
+                    nn.Conv2d(32, 32, kernel_size=3, padding=1),
+                    nn.BatchNorm2d(32),
+                    nn.SiLU(),
+                )
+            )
+
         # Calculate the flattened output size of the CNN
-        self.cnn_output_size = 64 * grid_size * grid_size
+        self.cnn_output_size = 32 * grid_size * grid_size
 
         # Fully connected layers for shared representation
         total_features = self.cnn_output_size + (2 * num_features_per_player)
         self.fc_shared = nn.Sequential(
-            nn.Linear(total_features, 128),
-            nn.ReLU()
+            nn.Linear(total_features, 64),
+            nn.BatchNorm1d(64),
+            nn.SiLU(),
+            nn.Dropout(p=0.1)
         )
+        self.flatten = nn.Flatten()
 
         # Value head
         self.value_head = nn.Sequential(
-            nn.Linear(128, 64),
-            nn.ReLU(),
             nn.Linear(64, 1),
             nn.Tanh()  # Outputs a scalar between -1 and 1
         )
 
         # Policy head
         self.policy_head = nn.Sequential(
-            nn.Linear(128, 64),
-            nn.ReLU(),
             nn.Linear(64, len(INDEX_TO_MOVE)),
             nn.Softmax(dim=1)  # Outputs probabilities for all possible moves
         )
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)
+        self.optimizer = AdamWScheduleFree(params=self.parameters(), lr=0.01, warmup_steps=25)
         self.to(self.device)
+        self.eval()
+        self.optimizer.eval()
 
     def forward(self, board, player1_features, player2_features):
         # Process the board state through the CNN
-        cnn_out = self.cnn(board)  # Shape: (batch_size, cnn_output_size)
+        cnn_out = self.cnn1(board)  # Shape: (batch_size, cnn_output_size)
+
+        for block in self.blocks:
+            block_out = block(cnn_out)
+            cnn_out = block_out + cnn_out
+
+        cnn_out = self.flatten(cnn_out)
 
         # Concatenate player features with CNN output
         combined = torch.cat((cnn_out, player1_features, player2_features), dim=1)
@@ -84,6 +101,7 @@ class GliderCNN(nn.Module):
         updated_nnet = torch.compile(updated_nnet)
 
         updated_nnet.train()
+        updated_nnet.optimizer.train()
 
         # Separate the data into individual tensors
         inputs, policy_targets, value_targets = zip(*trainingExamples)
@@ -109,7 +127,7 @@ class GliderCNN(nn.Module):
         dataset = torch.utils.data.TensorDataset(
             board_tensors, player1_tensors, player2_tensors, policy_targets, value_targets
         )
-        loader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
+        loader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True, drop_last=True)
 
         acc_total = 0
         loss_total = 0
@@ -139,6 +157,7 @@ class GliderCNN(nn.Module):
         logger.info(f'Pol Acc = {acc_total}')
         logger.info(f'Loss is {loss_total}')
         updated_nnet.eval()
+        updated_nnet.optimizer.eval()
 
         return updated_nnet
 

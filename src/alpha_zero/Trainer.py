@@ -42,6 +42,7 @@ class Trainer:
                 logger.info('Updated CNN to next Generation')
                 self.nnet = new_nnet
                 torch.save(self.nnet, f'../models/sugar_gliders_nnet{time.time()}.pth')
+                self.training_examples = []
 
 
     def play(self):

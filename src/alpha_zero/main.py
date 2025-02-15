@@ -18,7 +18,7 @@ def main():
 
     # cnn_tests.cnn_loss_tests()
 
-    nnet = torch.load("../models/sugar_gliders_nnet1739256673.5185611.pth")
+    nnet = GliderCNN()#torch.load("../models/sugar_gliders_nnet1739560227.575142.pth")
 
     trainer = Trainer(nnet)
     trainer.learn(100,300)

@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import numpy as np
@@ -8,8 +9,73 @@ from schedulefree import AdamWScheduleFree
 from Utils import INDEX_TO_MOVE
 
 logger = logging.getLogger(__name__)
+
+def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
+    """3x3 convolution with padding"""
+    return nn.Conv2d(
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=dilation,
+        groups=groups,
+        bias=False,
+        dilation=dilation,
+    )
+
+
+def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
+    """1x1 convolution"""
+    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+
+class BasicBlock(nn.Module):
+    expansion: int = 1
+
+    def __init__(
+        self,
+        inplanes: int,
+        planes: int,
+        stride: int = 1,
+        groups: int = 1,
+        base_width: int = 64,
+        downsample=None,
+        dilation: int = 1,
+    ) -> None:
+        super().__init__()
+        norm_layer = nn.BatchNorm2d
+        if groups != 1 or base_width != 64:
+            raise ValueError("BasicBlock only supports groups=1 and base_width=64")
+        if dilation > 1:
+            raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
+        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
+        self.conv1 = conv3x3(inplanes, planes, stride)
+        self.bn1 = norm_layer(planes)
+        self.activation = nn.SiLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = norm_layer(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.activation(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.activation(out)
+
+        return out
+
 class GliderCNN(nn.Module):
-    def __init__(self, num_channels=8, grid_size=9, num_features_per_player=5):
+    def __init__(self, num_channels=8, grid_size=9, num_features_per_player=5, channels_inner=24):
         """
         Args:
             num_channels (int): Number of input channels for the board representation.
@@ -20,49 +86,75 @@ class GliderCNN(nn.Module):
         self.device = torch.device('cpu')
 
         # CNN for processing the board state
+
         self.cnn1 = nn.Sequential(
-            nn.Conv2d(num_channels, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(num_channels, channels_inner, kernel_size=3, padding=1),
+            nn.BatchNorm2d(channels_inner),
             nn.SiLU(),
         )
 
         self.blocks = nn.ModuleList()
 
-        for _ in range(7):
+        for _ in range(1):
             self.blocks.append(
-                nn.Sequential(
-                    nn.Conv2d(32, 32, kernel_size=3, padding=1),
-                    nn.BatchNorm2d(32),
-                    nn.SiLU(),
+                BasicBlock(
+                    inplanes=channels_inner,
+                    planes=channels_inner,
+                )
+            )
+
+        self.blocks.append(
+            BasicBlock(
+                inplanes=channels_inner,
+                planes=channels_inner * 2,
+                downsample=conv1x1(channels_inner, channels_inner * 2)
+            )
+        )
+
+        for _ in range(1):
+            self.blocks.append(
+                BasicBlock(
+                    inplanes=channels_inner * 2,
+                    planes=channels_inner * 2,
                 )
             )
 
         # Calculate the flattened output size of the CNN
-        self.cnn_output_size = 32 * grid_size * grid_size
+        self.cnn_output_size = channels_inner * 2 * grid_size * grid_size
+
+        self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.flatten = nn.Flatten()
+        total_features = channels_inner * 2
+
+        # Player feature projection
+        self.in_projection = nn.Sequential(
+            nn.BatchNorm1d(2 * num_features_per_player),
+            nn.Linear(2 * num_features_per_player, total_features),
+            nn.BatchNorm1d(total_features),
+            nn.SiLU(),
+        )
 
         # Fully connected layers for shared representation
-        total_features = self.cnn_output_size + (2 * num_features_per_player)
         self.fc_shared = nn.Sequential(
-            nn.Linear(total_features, 64),
-            nn.BatchNorm1d(64),
+            nn.Linear(total_features, 100),
+            nn.BatchNorm1d(100),
             nn.SiLU(),
             nn.Dropout(p=0.1)
         )
-        self.flatten = nn.Flatten()
 
         # Value head
         self.value_head = nn.Sequential(
-            nn.Linear(64, 1),
+            nn.Linear(100, 1),
             nn.Tanh()  # Outputs a scalar between -1 and 1
         )
 
         # Policy head
         self.policy_head = nn.Sequential(
-            nn.Linear(64, len(INDEX_TO_MOVE)),
+            nn.Linear(100, len(INDEX_TO_MOVE)),
             nn.Softmax(dim=1)  # Outputs probabilities for all possible moves
         )
 
-        self.optimizer = AdamWScheduleFree(params=self.parameters(), lr=0.01, warmup_steps=25)
+        self.optimizer = AdamWScheduleFree(params=self.parameters(), lr=0.05, warmup_steps=100)
         self.to(self.device)
         self.eval()
         self.optimizer.eval()
@@ -72,13 +164,16 @@ class GliderCNN(nn.Module):
         cnn_out = self.cnn1(board)  # Shape: (batch_size, cnn_output_size)
 
         for block in self.blocks:
-            block_out = block(cnn_out)
-            cnn_out = block_out + cnn_out
+            cnn_out = block(cnn_out)
 
+        cnn_out = self.avg_pool(cnn_out)
         cnn_out = self.flatten(cnn_out)
 
+        player_features = torch.cat((player1_features, player2_features), dim=1)
+        player_features = self.in_projection(player_features)
+
         # Concatenate player features with CNN output
-        combined = torch.cat((cnn_out, player1_features, player2_features), dim=1)
+        combined = cnn_out + player_features
 
         # Fully connected layers
         x = self.fc_shared(combined)
@@ -91,11 +186,13 @@ class GliderCNN(nn.Module):
             board = board.to(self.device)
             player1 = player1.to(self.device)
             player2 = player2.to(self.device)
-            return self.forward(board, player1, player2)
+            p, v = self.forward(board, player1, player2)
+
+            return p.detach().numpy(), v.detach().numpy()
 
     def trainCNN(self, trainingExamples):
 
-        updated_nnet = self.__class__()
+        updated_nnet = copy.deepcopy(self)
         updated_nnet.load_state_dict(self.state_dict())
         updated_nnet.to(self.device)
         updated_nnet = torch.compile(updated_nnet)

@@ -330,7 +330,7 @@ class GameState:
         reserve2 = self.reserves[self.player_to_move ^ 1]
 
         for i in range(len(reserve2)):
-            player1_points_tensor[0,i] = reserve2[i].item()
+            player2_points_tensor[0,i] = reserve2[i].item()
         #
         # for i in range(board_tensor.shape[0]):
         #     plt.imshow(board_tensor[i].numpy(), cmap='gray')

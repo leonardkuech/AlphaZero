@@ -44,7 +44,7 @@ def mask_policy(policy : np.ndarray, mask : np.ndarray) -> np.ndarray:
     return policy
 
 class MCTS:
-    def __init__(self, nnet : CNN, simulation_limit: int = 300, exp : float = np.sqrt(2)):
+    def __init__(self, nnet : CNN, simulation_limit: int = 100, exp : float = np.sqrt(2)):
         self.player_id = 0
         self.index = 0
         self.simulation_limit = simulation_limit
@@ -83,11 +83,13 @@ class MCTS:
                 backpropagate(promising_node, self.nodes, reward)
 
 
-        action_prob = np.zeros(62)
+        action_prob = np.zeros(len(INDEX_TO_MOVE))
 
         for child in root.children:
             node = self.nodes[child]
-            action_prob[MOVE_TO_INDEX[node.move]] = node.visits / root.visits
+            action_prob[MOVE_TO_INDEX[node.move]] = node.visits
+
+        action_prob /= root.visits - 1
 
         self.nodes = Dict.empty(key_type=types.int64, value_type=NodeType)
         self.index = 0
@@ -110,12 +112,11 @@ class MCTS:
 
         moves = node.game_state.get_moves()
 
-        mask = np.zeros(62)
+        mask = np.zeros(len(INDEX_TO_MOVE))
 
         for move in moves:
             mask[MOVE_TO_INDEX[move]] = 1
 
-        policy = policy.numpy()
         value = value.item()
 
         policy = mask_policy(policy, mask)
@@ -138,6 +139,7 @@ class MCTS:
         children = [self.nodes[child] for child in parent.children]
         best_val = -1e9
         best_child = None
+
         for child in children:
             val = uct(child, self.exp, parent.visits)
             if val > best_val:

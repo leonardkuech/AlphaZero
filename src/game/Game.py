@@ -67,6 +67,7 @@ class Game:
             if self.agents[player] is not None:
                 while True:
                     selected = self.agents[player].choose_move(self.game_state)
+
                     if self.make_move(selected):
                         if self.has_ui:
                             self.ui.update_board()

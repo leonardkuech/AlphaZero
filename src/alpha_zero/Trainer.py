@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class Trainer:
     PIT_GAMES = 100
     THRESHOLD = 0.55
+    TEMP_CUTOFF = 25
 
     def __init__(self, nnet: GliderCNN):
         self.nnet = torch.compile(nnet, mode='max-autotune')
@@ -46,7 +47,6 @@ class Trainer:
 
 
     def play(self):
-
         game = Game.create_game().game_state
         train_examples = []
         mcts = MCTS(self.nnet)
@@ -54,12 +54,17 @@ class Trainer:
         turns = 0
         while True:
             prob = mcts.get_action_probabilities(game)
+
             #logger.info(f'{prob}')
-            prob /= np.sum(prob)
-            train_examples.append([game.encode(), prob.reshape(1,62), None])
+            train_examples.append([game.encode(), prob.reshape(1, len(INDEX_TO_MOVE)), None])
 
             valid = false
             move = None
+
+            # Reduce temp later in the game to increase accuracy of z
+            if turns >= self.TEMP_CUTOFF:
+                prob = prob ** 3
+                prob /= prob.sum()
 
             while not valid:
                 index = np.random.choice(len(prob), p=prob)

@@ -16,7 +16,7 @@ SIMULATIONS = 100
 def run():
     columns = ["Game", "Winner", "Turns", "AZPoints", "RandomPoints"]
     games_df = pd.DataFrame(columns=columns)
-    nnet = torch.load('../models/sugar_gliders_nnet1739820838.5186949.pth')
+    nnet = torch.load('../models/sugar_gliders_nnet1740237381.406999.pth')
     for i in range(SIMULATIONS):
         print("Simulation #", i+1)
         if i % 2 == 0:

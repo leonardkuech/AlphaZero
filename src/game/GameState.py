@@ -183,7 +183,6 @@ class GameState:
 
     def get_all_possible_moves_with_passing(self) -> list[int]:
         moves = self.get_all_possible_moves()
-        moves = moves.copy()
         moves.append(np.int32(-1))
         return moves
 

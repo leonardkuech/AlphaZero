@@ -50,10 +50,10 @@ class Trainer:
     def play(self):
         game = Game.create_game().game_state
         train_examples = []
-        mcts = MCTS(self.nnet)
 
         turns = 0
         while True:
+            mcts = MCTS(self.nnet)
             prob = mcts.get_action_probabilities(game)
 
             #logger.info(f'{prob}')

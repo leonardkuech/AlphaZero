@@ -182,6 +182,7 @@ class GameState:
 
     def get_all_possible_moves_with_passing(self) -> list[int]:
         moves = self.get_all_possible_moves()
+        moves = moves.copy()
         moves.append(np.int32(-1))
         return moves
 
@@ -315,6 +316,8 @@ class GameState:
             board_tensor[0, self.game_board[tile].item(), x + 4, y + 4] = 1.0
 
         for index, pos in enumerate(self.positions):
+            if pos == -1:
+                continue
 
             x, y = inverse_calc_cantor(pos)
             if self.player_to_move == index:

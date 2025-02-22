@@ -78,7 +78,7 @@ class Trainer:
                 winner = game.get_leader() # assign winner
                 for i, sample in enumerate(train_examples):
                     if winner < 0:
-                        sample[2] = torch.tensor([-1])
+                        sample[2] = torch.tensor([0])
                     else:
                         sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
                 break

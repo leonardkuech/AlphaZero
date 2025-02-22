@@ -44,7 +44,7 @@ def mask_policy(policy : np.ndarray, mask : np.ndarray) -> np.ndarray:
     return policy
 
 class MCTS:
-    def __init__(self, nnet : CNN, simulation_limit: int = 100, exp : float = np.sqrt(2)):
+    def __init__(self, nnet : CNN, simulation_limit: int = 300, exp : float = np.sqrt(2)):
         self.player_id = 0
         self.index = 0
         self.simulation_limit = simulation_limit

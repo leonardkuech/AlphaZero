@@ -6,6 +6,7 @@ from sympy import false
 
 from CNN import GliderCNN
 from Game import Game
+from MCTSNNetAgent import MCTSNNetAgent
 from Utils import INDEX_TO_MOVE, sum_reserve
 from MCTS import MCTS
 from NNetAgent import NNetAgent
@@ -78,9 +79,9 @@ class Trainer:
                 winner = game.get_leader() # assign winner
                 for i, sample in enumerate(train_examples):
                     if winner < 0:
-                        sample[2] = torch.tensor([-1])
+                        sample[2] = torch.tensor([0])
                     else:
-                        sample[2] = torch.tensor([1]) if i % 2 == winner else torch.tensor([-1])
+                        sample[2] = torch.tensor([-1]) if i % 2 == winner else torch.tensor([1])
                 break
 
         self.training_examples.extend(train_examples)
@@ -92,8 +93,8 @@ class Trainer:
         player_id_new_agent = 0
 
         for i in range(Trainer.PIT_GAMES):
-            agent_old = NNetAgent(old_nnet, "OldAgent")
-            agent_new = NNetAgent(new_nnet, "NewAgent")
+            agent_old = MCTSNNetAgent(old_nnet, "OldAgent", i % 2)
+            agent_new = MCTSNNetAgent(new_nnet, "NewAgent", i % 2 + 1)
 
             if i % 2 == 0:
                 game = Game.create_agent_game(agent_old, agent_new)

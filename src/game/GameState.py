@@ -1,4 +1,5 @@
 import numpy as np
+from sympy.physics.units import electronvolt
 
 from Utils import calc_cantor, sum_reserve, distance, inverse_calc_cantor, in_bounds, sum_board_values
 from numba import int32, boolean, types, njit
@@ -323,7 +324,11 @@ class GameState:
             if self.player_to_move == index:
                 board_tensor[0, num_value_channels, x + 4, y + 4] = 1.0
             else:
-                board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
+                if self.not_moved_count > 0:
+                    board_tensor[0, num_value_channels + 1, x + 4, y + 4] = -1.0
+                else:
+                    board_tensor[0, num_value_channels + 1, x + 4, y + 4] = 1.0
+
 
         reserve1 = self.reserves[self.player_to_move]
 

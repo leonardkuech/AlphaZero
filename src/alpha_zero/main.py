@@ -23,7 +23,7 @@ def main():
 
     torchinfo.summary(nnet)
     trainer = Trainer(nnet)
-    trainer.learn(100,300)
+    trainer.learn(100,100)
 
 
 

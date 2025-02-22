@@ -53,7 +53,7 @@ class Trainer:
 
         turns = 0
         while True:
-            mcts = MCTS(self.nnet)
+            mcts = MCTS(self.nnet, player_id=game.player_to_move)
             prob = mcts.get_action_probabilities(game)
 
             #logger.info(f'{prob}')

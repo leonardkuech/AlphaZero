@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class MCTSNNetAgent(Agent):
     def __init__(self, nnet, name: str, playerID : int = 0) -> None:
         super().__init__(name)
-        self.mcts = MCTS(nnet=nnet, simulation_limit=30, player_id= playerID)
+        self.mcts = MCTS(nnet=nnet, simulation_limit=300, player_id= playerID)
 
     def choose_move(self, game_state: GameState):
 

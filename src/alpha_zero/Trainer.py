@@ -40,11 +40,10 @@ class Trainer:
             new_nnet = new_nnet.trainCNN(self.training_examples)
             percentage_won = self.pit(self.nnet, new_nnet)
 
-            if percentage_won >=Trainer.THRESHOLD:
-                logger.info('Updated CNN to next Generation')
-                self.nnet = new_nnet
-                torch.save(self.nnet, f'../models/sugar_gliders_nnet{time.time()}.pth')
-                self.training_examples = []
+            logger.info('Updated CNN to next Generation')
+            self.nnet = new_nnet
+            torch.save(self.nnet, f'../models/sugar_gliders_nnet{time.time()}.pth')
+            self.training_examples = []
 
 
     def play(self):

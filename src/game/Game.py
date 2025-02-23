@@ -86,7 +86,7 @@ class Game:
                         if self.has_ui:
                             self.ui.update_board()
                         break
-            # print(time.time() - begin)
+            print(time.time() - begin)
             self.turns += 1
             if self.turns % 2 == 0:
                 self.points_history.append(sum_reserve(self.game_state.reserves[0]) - sum_reserve(self.game_state.reserves[1]))
